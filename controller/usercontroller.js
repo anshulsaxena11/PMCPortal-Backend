@@ -1662,6 +1662,36 @@ const TenderTrackingDetails = async (req, res) => {
 };
 
 // getting Tender List API
+const getAllTenderList = async (req, res) => {
+  try {
+    const { isDeleted = "false" } = req.query;
+
+    // Convert isDeleted string to boolean
+    const isDeletedBool = isDeleted === "false";
+
+    // Build query
+    const query = { 
+      isDeleted: isDeletedBool,
+    };
+
+    const projects = await TenderTrackingModel.find(query);
+    console.log(projects);
+    res.status(200).json({
+      statuscode: 200,
+      success: true,
+      data: projects,
+
+    });
+  } catch (error) {
+    res.status(400).json({
+      statusCode: 400,
+      success: false,
+      message: "Server Error",
+      error,
+    });
+  }
+};
+
 const getTenderDetails = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", isDeleted = "false" } = req.query;
@@ -2032,5 +2062,6 @@ module.exports = {
     getNetworkDeviceList,
     getAllReport,
     getReportById,
-	getAllProjectDetails
+	getAllProjectDetails,
+    getAllTenderList
 }
