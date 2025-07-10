@@ -1,5 +1,8 @@
 const axios = require('axios');
 const stpiEmpDetailsModel = require('../models/StpiEmpModel')
+const loginModel = require('../models/loginModel')
+const jwt = require('jsonwebtoken');
+const getClientIp = require('../utils/getClientip')
 
 const sync = async(req,res) =>{
     try{
@@ -253,6 +256,121 @@ const taskForceMemberStatus = async(req,res)=>{
 
   }
 }
+
+const register = async(req,res) =>{
+  try{
+    const {username, password, role} =  req.body;
+
+    if (!username || !password || !role) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Username, password, and role are required",
+      });
+    }
+
+    const userExist = await loginModel.findOne({ username });
+    if (userExist) {
+      return res.status(409).json({
+        statusCode: 409,
+        message: "User already exists",
+      });
+    }
+    const newAdmin = new loginModel({ username, password, role });
+    await newAdmin.save();
+    res.status(200).json({
+      statusCode:200,
+      message:"Login sucessfully created"
+    })
+  }catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message:'Error creating login'
+    })
+  }
+}
+
+const login = async (req,res)=>{
+  try {
+    const {username, password} = req.body;
+    const user = await loginModel.findOne({username}).select("+password");
+    if (!user){
+      return res.status(404).json({
+        statusCode:404,
+        message:"Incorrect Username or Password "
+      })
+    }
+    const isMatched = await user.comparePassword(password)
+    if (!isMatched){
+       return res.status(404).json({
+        statusCode:404,
+        message:"Incorrect Username or Password "
+      })
+    }
+    const ip =await getClientIp(req)
+
+    user.ipAddressLog.push({ip})
+    await user.save({ validateBeforeSave: false });
+
+    const token =jwt.sign({id:user._id,role:user.role},process.env.JWT_SECRET,{
+      expiresIn:'1d'
+    })
+    
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.ENVIROMENT === 'production', 
+      sameSite: 'Lax',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    
+
+    res.status(200).json({
+      statusCode: 200,
+      message: 'Login successful',
+      user: { username: user.username, role: user.role }
+    });
+  }catch(error){
+    res.status(400).status({
+      statusCode:400,
+      message:error
+    })
+  }
+}
+
+const validateToken = async(req,res)=>{
+   const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      res.status(200).json({ user: decoded });
+    } catch (err) {
+      res.status(401).json({ message: 'Invalid or expired token' });
+    }
+}
+
+const logout = async(req,res) =>{
+  try{
+   res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.ENVIROMENT === 'production',
+      sameSite: 'Lax'
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: 'Logout successful'
+    });
+  } catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message:error
+    })
+  }
+}
+
 module.exports = {
   sync,
   getStpiEmpList,
@@ -260,5 +378,9 @@ module.exports = {
   stpiCentre,
   stpiEmpType,
   stpidir,
-  taskForceMemberStatus
+  taskForceMemberStatus,
+  register,
+  login,
+  validateToken,
+  logout
 }
