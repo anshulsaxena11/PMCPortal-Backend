@@ -1675,7 +1675,6 @@ const getAllTenderList = async (req, res) => {
     };
 
     const projects = await TenderTrackingModel.find(query);
-    console.log(projects);
     res.status(200).json({
       statuscode: 200,
       success: true,

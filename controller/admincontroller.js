@@ -329,26 +329,11 @@ const login = async (req,res)=>{
       user: { username: user.username, role: user.role }
     });
   }catch(error){
-    res.status(400).status({
+    res.status(400).json({
       statusCode:400,
       message:error
     })
   }
-}
-
-const validateToken = async(req,res)=>{
-   const token = req.cookies.token;
-
-    if (!token) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      res.status(200).json({ user: decoded });
-    } catch (err) {
-      res.status(401).json({ message: 'Invalid or expired token' });
-    }
 }
 
 const logout = async(req,res) =>{
@@ -381,6 +366,5 @@ module.exports = {
   taskForceMemberStatus,
   register,
   login,
-  validateToken,
   logout
 }
