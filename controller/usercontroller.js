@@ -1664,14 +1664,14 @@ const TenderTrackingDetails = async (req, res) => {
 // getting Tender List API
 const getAllTenderList = async (req, res) => {
   try {
-    const { isDeleted = "false" } = req.query;
+    const { isDeleted = false } = req.query;
 
     // Convert isDeleted string to boolean
     const isDeletedBool = isDeleted === "false";
 
     // Build query
     const query = { 
-      isDeleted: isDeletedBool,
+      isDeleted: isDeleted,
     };
 
     const projects = await TenderTrackingModel.find(query);
