@@ -1,7 +1,7 @@
 const express = require('express')
 const routes = express.Router()
 const adminCtrl = require('../../controller/admincontroller') 
-const authMiddleware = require('../../middleware/authMiddleware');
+const authMiddleware = require('../../middleware/authmiddleware');
 const allowRoles = require("../../middleware/allowRole");
 
 routes.post('/syncEmp',authMiddleware,allowRoles('Admin'),adminCtrl.sync);

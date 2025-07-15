@@ -163,6 +163,7 @@ const empMapping = async(req,res) => {
 }
 
 const stpiCentre = async(req,res) => {
+	console.log('qwdqwdqwqwqd');
   try {
     const centres = await stpiEmpDetailsModel.distinct('centre');
     const sortedCentres = centres
@@ -171,7 +172,7 @@ const stpiCentre = async(req,res) => {
 
     res.status(200).json({
       statusCode: 200,
-      message: 'Fetched centres successfully',
+      message: 'Fetched centres successfully22',
       data: sortedCentres,
     });
   } catch (error) {

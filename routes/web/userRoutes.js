@@ -2,7 +2,7 @@ const express = require('express')
 const routes = express.Router()
 const UserCtrl = require('../../controller/usercontroller')
 const upload   = require('../../middleware/filemidleware')
-const authMiddleware = require('../../middleware/authMiddleware');
+const authMiddleware = require('../../middleware/authmiddleware');
 const allowRoles = require("../../middleware/allowRole");
 // post api
 routes.post('/perseonalDetails',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('file'),UserCtrl.perseonalDetails)
