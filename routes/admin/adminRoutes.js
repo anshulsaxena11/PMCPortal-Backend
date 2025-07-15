@@ -14,6 +14,6 @@ routes.put('/taskMember',authMiddleware,allowRoles('Admin'),adminCtrl.taskForceM
 routes.post('/register',authMiddleware,allowRoles('Admin'),adminCtrl.register)
 routes.post('/login', adminCtrl.login);
 routes.get('/validate',authMiddleware)
-routes.post('/logout',adminCtrl.logout)
+routes.post('/logout',adminCtrl.logout) 
 
 module.exports = routes 

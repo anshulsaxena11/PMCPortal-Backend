@@ -58,5 +58,5 @@ routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),U
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.get('/checkTenderName/',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.checkTenderName);
 routes.put('/soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTenderById);
-
+ 
 module.exports = routes 
