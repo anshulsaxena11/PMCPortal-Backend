@@ -2,7 +2,15 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const loginSchema = new mongoose.Schema({
+  empId:{
+     type: mongoose.Schema.Types.ObjectId,
+  },
   username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  email:{
     type: String,
     required: true,
     unique: true
@@ -39,6 +47,9 @@ const loginSchema = new mongoose.Schema({
 
 loginSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+
+  const isAlreadyHashed = /^\$2[aby]\$/.test(this.password); // bcrypt hash pattern
+  if (isAlreadyHashed) return next();
 
   try {
     const salt = await bcrypt.genSalt(10);

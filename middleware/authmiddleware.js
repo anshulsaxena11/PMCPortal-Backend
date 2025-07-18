@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken')
 
 const authMiddleware = (req,res,next)=>{
-    const token = req.cookies?.token
+    const sessionToken = req.session?.user?.token;
+
+    const cookieToken  = req.cookies?.token
+    const token = sessionToken || cookieToken;
     if(!token){
         return res.status(401).json({
             statuscode:401,
