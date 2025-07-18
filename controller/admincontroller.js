@@ -2,7 +2,37 @@ const axios = require('axios');
 const stpiEmpDetailsModel = require('../models/StpiEmpModel')
 const loginModel = require('../models/loginModel')
 const jwt = require('jsonwebtoken');
+const { sendEmail } = require('../Service/email');
 const getClientIp = require('../utils/getClientip')
+
+function generateRandomPassword(length = 12) {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const number = '0123456789';
+  const special = '@$!%*?#&';
+
+  const all = upper + lower + number + special;
+
+  const getRandom = (chars) => chars[Math.floor(Math.random() * chars.length)];
+
+ 
+  let password = [
+    getRandom(upper),
+    getRandom(lower),
+    getRandom(number),
+    getRandom(special),
+  ];
+
+ 
+  for (let i = password.length; i < length; i++) {
+    password.push(getRandom(all));
+  }
+
+ 
+  return password
+    .sort(() => Math.random() - 0.5)
+    .join('');
+}
 
 const sync = async(req,res) =>{
     try{
@@ -32,7 +62,8 @@ const sync = async(req,res) =>{
                 existing.doij !== item.doij ||
                 existing.stat !== item.stat ||
                 existing.edocj !== item.edocj ||
-                existing.dir !== item.dir;
+                existing.dir !== item.dir ||
+                existing.email !== item.email;
           
               if (needsUpdate) {
                 await stpiEmpDetailsModel.updateOne(
@@ -89,7 +120,7 @@ const sync = async(req,res) =>{
 
 const getStpiEmpList = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search=" ",centre=" " ,StatusNoida=" ",etpe=" ",dir=" "} = req.query;
+    const { page = "", limit = "", search=" ",centre=" " ,StatusNoida=" ",etpe=" ",dir=" "} = req.query;
     const query = {
       ...(search.trim()
         ? {
@@ -259,24 +290,38 @@ const taskForceMemberStatus = async(req,res)=>{
 
 const register = async(req,res) =>{
   try{
-    const {username, password, role} =  req.body;
+    const {empId, role} =  req.body;
 
-    if (!username || !password || !role) {
+    if (!empId || !role) {
       return res.status(400).json({
         statusCode: 400,
-        message: "Username, password, and role are required",
+        message: "UserDetails and role are required",
       });
     }
-
-    const userExist = await loginModel.findOne({ username });
+    const userExist = await loginModel.findOne({ empId:empId });
     if (userExist) {
       return res.status(409).json({
         statusCode: 409,
         message: "User already exists",
       });
     }
-    const newAdmin = new loginModel({ username, password, role });
+
+    const empdetails = await stpiEmpDetailsModel.findById({_id:empId})
+    const plainPassword = generateRandomPassword();
+
+    const newAdmin = new loginModel({ empId:empId, username:empdetails.empid,email:empdetails.email,password:plainPassword,role });
     await newAdmin.save();
+    await sendEmail(
+          '', // to
+          'Your Login Credentials', // subject
+          `Username: ${empdetails.empid} or ${empdetails.email}\nPassword: ${plainPassword}`, // text
+          `
+            <h3>Welcome!</h3>
+            <p>Username: <strong>${empdetails.empid} or ${empdetails.email}</strong></p>
+            <p>Password: <strong>${plainPassword}</strong></p>
+            <p>This is an <strong>HTML</strong> message.</p>
+          ` // html
+        );
     res.status(200).json({
       statusCode:200,
       message:"Login sucessfully created"
@@ -292,7 +337,12 @@ const register = async(req,res) =>{
 const login = async (req,res)=>{
   try {
     const {username, password} = req.body;
-    const user = await loginModel.findOne({username}).select("+password");
+    const user = await loginModel.findOne({
+       $or:[
+        {username:username},
+        {email:username}
+      ]
+    }).select("+password");
     if (!user){
       return res.status(404).json({
         statusCode:404,
@@ -308,21 +358,24 @@ const login = async (req,res)=>{
     }
     const ip =await getClientIp(req)
 
-    user.ipAddressLog.push({ip})
+     user.ipAddressLog = {
+      ip: ip,
+      date: new Date()
+    };
+
     await user.save({ validateBeforeSave: false });
 
-    const token =jwt.sign({id:user._id,role:user.role},process.env.JWT_SECRET,{
+    const token =jwt.sign({id:user._id,role:user.role,emp:user.username},process.env.JWT_SECRET,{
       expiresIn:'1d'
     })
-    
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.ENVIROMENT === 'production', 
-      sameSite: 'Lax',
-      maxAge: 24 * 60 * 60 * 1000
-    });
-    
 
+    req.session.user = {
+      id: user._id,
+      empId: user.username,
+      role: user.role,
+      token: token 
+    };
+      
     res.status(200).json({
       statusCode: 200,
       message: 'Login successful',
@@ -338,21 +391,79 @@ const login = async (req,res)=>{
 
 const logout = async(req,res) =>{
   try{
-   res.clearCookie('token', {
-      httpOnly: true,
-      secure: process.env.ENVIROMENT === 'production',
-      sameSite: 'Lax'
-    });
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destroy error:", err);
+        return res.status(500).json({
+          statusCode: 500,
+          message: "Logout failed (session error)",
+        });
+      }
+      
+    res.clearCookie("connect.sid", {
+        httpOnly: true,
+        secure: process.env.ENVIROMENT === "production",
+        sameSite: "Lax",
+      });
 
     res.status(200).json({
       statusCode: 200,
       message: 'Logout successful'
     });
+  })
   } catch(error){
     res.status(400).json({
       statusCode:400,
       message:error
     })
+  }
+}
+
+const forgetPassword = async(req,res) =>{
+  try{
+    const {username} = req.body;
+    const user = await loginModel.findOne({
+      $or:[
+        {username:username},
+        {email:username}
+      ]
+    });
+
+    if(!user){
+      return res.status(404).json({
+        statusCode:404,
+        message:"Username doesnot exist Contact Admin"
+      })
+    }
+
+    const updatedPassword = generateRandomPassword();
+    user.password =updatedPassword
+  
+    await user.save()
+
+    await sendEmail(
+      '', // to
+      'Your Password has been Reset', // subject
+      `Username: ${user.username} or ${user.email}\nPassword: ${updatedPassword}`, // text
+      `
+        <h3>Welcome!</h3>
+        <p>Username: <strong>${user.username} or ${user.email}</strong></p>
+        <p>Password: <strong>${updatedPassword}</strong></p>
+        <p>This is an <strong>HTML</strong> message.</p>
+      ` // html
+    );
+ 
+    res.status(200).json({
+        statusCode:200,
+        message:"Credentials has benn send to email"
+    })
+
+  } catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message:'error'
+    })
+    console.log(error)
   }
 }
 
@@ -366,5 +477,6 @@ module.exports = {
   taskForceMemberStatus,
   register,
   login,
-  logout
+  logout,
+  forgetPassword
 }

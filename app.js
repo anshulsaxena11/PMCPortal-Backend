@@ -5,6 +5,7 @@ const http = require("http");
 const cookieParser = require('cookie-parser');
 const connectDB = require("./Config/dbConfig")
 const bodyParser = require('body-parser');
+const session = require("express-session");
 const path = require('path');
 const app = express();
 const port = process.env.PORT
@@ -23,6 +24,18 @@ app.use(
     }),
   );
 app.use('/uploads', express.static(path.join(__dirname, './uploads')));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.ENVIROMENT === "production",
+    httpOnly: true,
+    sameSite: "Lax",
+    maxAge: 15 * 60 * 1000 
+  }
+}));
 
 // .....routes...
 app.use('/api/v1', require('./routes/indexRoutes'));
