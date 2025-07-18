@@ -11,6 +11,7 @@ const app = express();
 const port = process.env.PORT
 const Host = process.env.HOST
 const Url = process.env.React_URL
+app.set('trust proxy', true);
 connectDB();
 app.use(cors({
   origin: Url,
