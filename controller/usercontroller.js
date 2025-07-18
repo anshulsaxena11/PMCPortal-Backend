@@ -255,45 +255,51 @@ const getAllProjectDetails = async (req, res) => {
   
 // getting projrct List API
 const getProjecDetails = async (req, res) => {
-    try {
-      const { page = 1, limit = 10, search = "" } = req.query;
-      const query = search
-        ? {
-            $or: [
-              { workOrderNo: { $regex: search, $options: "i" } },
-              { projectName: { $regex: search, $options: "i" } },  // Example for searching by projectName
-            ]
-          }
-        : {};
-      const totalCount = await projectdetailsModel.countDocuments(query);
-      const projects = await projectdetailsModel.find(query)
-        .populate({
-          path: "projectType",
-          model: "ProjectType",
-          select: "ProjectTypeName", 
-        })
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .sort({ createdAt: -1 });
+  try {
+    const { page = 1, limit = 10, search = "" } = req.query;
 
-      res.status(200).json({
-        statuscode: 200,
-        success: true,
-        total: totalCount,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(totalCount / limit),
-        data: projects,
-      });
-    } catch (error) {
-      res.status(400).json({
-        statusCode: 400,
-        success: false,
-        message: "Server Error",
-        error,
-      });
+    // Base query always includes isDeleted: false
+    let query = { isDeleted: false };
+
+    // If there is a search term, add search conditions to the $or array
+    if (search) {
+      query.$or = [
+        { workOrderNo: { $regex: search, $options: "i" } },
+        { projectName: { $regex: search, $options: "i" } }
+      ];
     }
-  };
+
+    const totalCount = await projectdetailsModel.countDocuments(query);
+
+    const projects = await projectdetailsModel.find(query)
+      .populate({
+        path: "projectType",
+        model: "ProjectType",
+        select: "ProjectTypeName",
+      })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      statuscode: 200,
+      success: true,
+      total: totalCount,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(totalCount / limit),
+      data: projects,
+    });
+  } catch (error) {
+    res.status(400).json({
+      statusCode: 400,
+      success: false,
+      message: "Server Error",
+      error,
+    });
+  }
+};
+
 
 //get project details by Id
 
@@ -1898,6 +1904,41 @@ const deleteTenderById = async(req,res) =>{
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+const deleteprojectsById = async(req,res) =>{
+
+    try {
+    const { id } = req.params;
+
+    const deletedProject = await projectdetailsModel.findByIdAndUpdate(
+      id,
+      { isDeleted: true, deletedAt: new Date(), },
+      { new: true },
+      
+    );
+    if(deletedProject){
+        const deletedReports = await reportModel.updateMany(
+        { projectName: id }, 
+        {
+            isDeleted: true,
+            deletedAt: new Date()
+        }
+        );
+    }
+
+    if (!deletedProject)  {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    return res.json({
+      message: 'Project deleted successfully',
+      data: deletedProject ,
+    });
+
+  } catch (error) {
+    console.error('Project delete error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 const deleteTrue = async (req, res) => {
   try {
@@ -2062,5 +2103,6 @@ module.exports = {
     getAllReport,
     getReportById,
 	getAllProjectDetails,
-    getAllTenderList
+    getAllTenderList,
+    deleteprojectsById
 }

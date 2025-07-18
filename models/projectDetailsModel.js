@@ -36,7 +36,12 @@ const projectDetailsSchema = new mongoose.Schema({
     createdAt:{
         type: Date,
         default: Date.now,
-    }
+    },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
 });
 
 const ProjectDetails = mongoose.model('ProjectDetails', projectDetailsSchema);
