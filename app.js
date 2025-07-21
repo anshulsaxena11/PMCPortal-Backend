@@ -24,7 +24,13 @@ app.use(
       extended: true,
     }),
   );
-app.use('/uploads', express.static(path.join(__dirname, './uploads')));
+app.use('/uploads', express.static(path.join(__dirname, './uploads'), {
+  setHeaders: function (res, path) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://pmcportal.stpi.in');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Content-Type', 'application/pdf');
+  }
+}));
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
