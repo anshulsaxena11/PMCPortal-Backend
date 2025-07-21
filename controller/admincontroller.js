@@ -362,10 +362,17 @@ const login = async (req,res)=>{
       ip: ip,
       date: new Date()
     };
-
+    const empId = user.user;
+    let name 
+    if(empId){
+      const emp = await stpiEmpDetailsModel.findById({_id:empId}) 
+      name = emp.ename
+    }else {
+      name = user.role
+    }
     await user.save({ validateBeforeSave: false });
 
-    const token =jwt.sign({id:user._id,role:user.role,emp:user.username},process.env.JWT_SECRET,{
+    const token =jwt.sign({id:user._id,role:user.role,emp:user.username,name:name},process.env.JWT_SECRET,{
       expiresIn:'1d'
     })
 
@@ -379,7 +386,7 @@ const login = async (req,res)=>{
     res.status(200).json({
       statusCode: 200,
       message: 'Login successful',
-      user: { username: user.username, role: user.role }
+      user: { name: name, role: user.role }
     });
   }catch(error){
     res.status(400).json({
