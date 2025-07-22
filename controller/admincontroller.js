@@ -312,7 +312,7 @@ const register = async(req,res) =>{
     const newAdmin = new loginModel({ empId:empId, username:empdetails.empid,email:empdetails.email,password:plainPassword,role });
     await newAdmin.save();
     await sendEmail(
-          '', // to
+          empdetails.email, // to
           'Your Login Credentials', // subject
           `Username: ${empdetails.empid} or ${empdetails.email}\nPassword: ${plainPassword}`, // text
           `
@@ -449,7 +449,7 @@ const forgetPassword = async(req,res) =>{
     await user.save()
 
     await sendEmail(
-      '', // to
+      user.email, // to
       'Your Password has been Reset', // subject
       `Username: ${user.username} or ${user.email}\nPassword: ${updatedPassword}`, // text
       `
@@ -474,6 +474,84 @@ const forgetPassword = async(req,res) =>{
   }
 }
 
+const getloginDetails = async (req, res) => {
+  try {
+    const {role = "",search = "",dir = "",centre = "",etype = "",taskForceMember = "",page=1 ,limit=10,StatusNoida=""} = req.query;
+    const filter = {};
+
+    if (role.trim()) filter.role = role;
+    if (dir.trim()) filter.dir = new RegExp(dir, "i");
+    if (centre.trim()) filter.centre = new RegExp(centre, "i");
+    if (etype.trim()) filter.etpe = new RegExp(etype, "i");
+    if (taskForceMember.trim()) filter.taskForceMember = new RegExp(taskForceMember, "i");
+    if (StatusNoida.trim()) filter.StatusNoida = new RegExp(StatusNoida, "i");
+
+    const users = await loginModel.find(filter).select('-password -ipAddressLog -__v -username');
+
+    const enrichedUsers = await Promise.all(
+      users.map(async (user) => {
+        if (user.empId) {
+          const empDetails = await stpiEmpDetailsModel.findById(user.empId).lean();
+
+          return {
+            ...user.toObject(),
+            empId:empDetails.empid,
+            ename: empDetails.ename,
+            centre: empDetails.centre,
+            dir: empDetails.dir,
+            etpe:empDetails.etpe,
+            StatusNoida:empDetails.StatusNoida,
+            taskForceMember:empDetails.taskForceMember,
+          };
+        } else {
+          return {
+            ...user.toObject(),
+              empId: user.role || null,
+              ename: user.role || null,
+              centre: user.centre || 'Noida',
+              dir: user.directorates || 'Noida',
+              etpe: 'Regular',
+              taskForceMember:'Yes',
+              StatusNoida:true
+          };
+        }
+      })
+    );
+    const filteredUsers = enrichedUsers.filter(user => {
+    const matchSearch =
+      search.trim() === "" ||
+      (user.ename?.toLowerCase().includes(search.toLowerCase()) ||
+        user.empId?.toLowerCase().includes(search.toLowerCase()));
+    const matchDir = dir.trim() === "" || user.dir?.toLowerCase().includes(dir.toLowerCase());
+    const matchCentre = centre.trim() === "" || user.centre?.toLowerCase().includes(centre.toLowerCase());
+    const matchEtpe = etype.trim() === "" || user.etpe?.toLowerCase().includes(etype.toLowerCase());
+    const matchTFM = taskForceMember.trim() === "" || user.taskForceMember?.toLowerCase().includes(taskForceMember.toLowerCase());
+    const matchSN = StatusNoida.trim() === "" || user.StatusNoida?.toLowerCase().includes(StatusNoida.toLowerCase());
+
+    return matchSearch || matchDir || matchCentre || matchEtpe || matchTFM ||matchSN ;
+  });
+
+    const start = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedData = filteredUsers.slice(start, start + parseInt(limit));
+
+   return res.status(200).json({
+      success: true,
+      message: 'Login details fetched successfully',
+      data: paginatedData,
+      total: filteredUsers.length,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+  } catch (error) {
+    console.error('Error in getloginDetails:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   sync,
   getStpiEmpList,
@@ -485,5 +563,6 @@ module.exports = {
   register,
   login,
   logout,
-  forgetPassword
+  forgetPassword,
+  getloginDetails
 }
