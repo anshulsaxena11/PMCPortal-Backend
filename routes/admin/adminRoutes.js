@@ -13,8 +13,11 @@ routes.get('/stpiDirectorates',authMiddleware,allowRoles('Admin','SubAdmin'),adm
 routes.put('/taskMember',authMiddleware,allowRoles('Admin'),adminCtrl.taskForceMemberStatus)
 routes.post('/register',authMiddleware,allowRoles('Admin'),adminCtrl.register)
 routes.post('/login', adminCtrl.login);
-routes.get('/validate',authMiddleware)
+routes.get('/validate', authMiddleware, (req, res) => {
+  return res.status(200).json({ message: 'Token is valid' });
+});
 routes.post('/logout',adminCtrl.logout) 
 routes.post('/forget-Password',adminCtrl.forgetPassword)
+routes.get('/user',authMiddleware,allowRoles('Admin'),adminCtrl.getloginDetails)
 
 module.exports = routes 
