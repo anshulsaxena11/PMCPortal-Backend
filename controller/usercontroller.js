@@ -323,7 +323,7 @@ const getProjecDetails = async (req, res) => {
 
         // Construct full URL for workOrder (PDF file)
         const workOrderUrl = project.workOrder
-            ? `${req.protocol}://${req.get('host')}${project.workOrder}`
+            ? `${req.protocol}://${req.get('host')}:${process.env.DOC_PORT}/${project.workOrder}`
             : null;
 
         res.status(200).json({
@@ -422,7 +422,7 @@ const editProjectDetails = async (req, res) => {
         });;
 
         const workOrderUrl = updatedProject.workOrder
-        ? `${req.protocol}://${req.get("host")}${updatedProject.workOrder}`
+        ? `${req.protocol}://${req.get("host")}$:{process.env.DOC_PORT}/${updatedProject.workOrder}`
         : null;
 
         res.status(200).json({
@@ -841,7 +841,7 @@ const getReportDetailsById = async (req,res) =>{
                 .filter((item) => item.description?.trim() || item.proof?.trim())
                 .map((item) => ({
                     ...item,
-                    proof: item.proof ? `${req.protocol}://${req.get('host')}${item.proof}` : "",
+                    proof: item.proof ? `${req.protocol}://${req.get('host')}:${process.env.DOC_PORT}/${item.proof}` : "",
                 }));
         }
         
@@ -940,7 +940,7 @@ const updateReportById = async (req, res) => {
             return res.status(404).json({ statusCode: 404, message: "Report not found after update" });
         }
 
-        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const baseUrl = `${req.protocol}://${req.get("host")}:${process.env.DOC_PORT}/`;
         updatedReport.proofDocument = updatedReport.proofDocument ? `${baseUrl}/${updatedReport.proofDocument}` : null;
         updatedReport.proofOfConcept = updatedReport.proofOfConcept.map((step) => ({
             ...step,
@@ -1017,7 +1017,7 @@ const getFullReport = async (req, res) => {
                     .filter((item) => item.description?.trim() || item.proof?.trim())
                     .map((item) => ({
                         ...item,
-                        proof: item.proof ? `${req.protocol}://${req.get('host')}${item.proof}` : "",
+                        proof: item.proof ? `${req.protocol}://${req.get('host')}:${process.env.DOC_PORT}/${item.proof}` : "",
                     }));
             }
             return report;
@@ -1582,7 +1582,7 @@ const getVulnabilityListSpecific = async(req,res) =>{
                 .filter((item) => item.description?.trim() || item.proof?.trim())
                 .map((item) => ({
                     ...item,
-                    proof: item.proof ? `${req.protocol}://${req.get('host')}${item.proof}` : "",
+                    proof: item.proof ? `${req.protocol}://${req.get('host')}:${process.env.DOC_PORT}/${item.proof}` : "",
                 }));
             }
             return report;
@@ -1793,7 +1793,7 @@ const getTenderById = async (req, res) => {
 
     // Prepend full URL for tenderDocument if exists
     const filePath = tenderData.tenderDocument
-      ? `${req.protocol}://${req.get("host")}${tenderData.tenderDocument}`
+      ? `${req.protocol}://${req.get("host")}:${process.env.DOC_PORT}/${tenderData.tenderDocument}`
       : null;
 
     const responseData = {
@@ -2022,7 +2022,7 @@ const getReportById = async (req, res) => {
             });
         }
 
-        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const baseUrl = `${req.protocol}://${req.get("host")}:${process.env.DOC_PORT}/`;
 
         report.proofDocument = report.proofDocument ? `${baseUrl}/${report.proofDocument}` : null;
 
