@@ -33,14 +33,44 @@ const projectDetailsSchema = new mongoose.Schema({
     typeOfWork:String,
     serviceLocation:String,
     workOrder:String,
+    primaryRoleAndDesignation:{
+        type:String,
+        default:'N/A'
+    },
+    secondaryRoleAndDesignation:{
+        type:String,
+        default:'N/A'
+    },
     createdAt:{
         type: Date,
         default: Date.now,
+    },
+    createdbyIp:{
+        type:String
+    },
+    createdById:{
+        type:String
+    },
+    updatedAt:{
+        type: Date,
+        default: Date.now,
+    },
+    updatedByIp:{
+        type:String
+    },
+    updatedById:{
+        type:String
     },
     isDeleted: { type: Boolean, default: false },
     deletedAt: {
       type: Date,
       default: null,
+    },
+      deletedByIp:{
+        type:String
+    },
+    deletedById:{
+        type:String
     },
 });
 

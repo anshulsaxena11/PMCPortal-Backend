@@ -25,6 +25,7 @@ const ProjectPhase = require("../models/ProjectPhase")
 const TypeOfWorkModel = require("../models/typeOfWorkModel")
 const TenderTrackingModel = require("../models/tenderTrackingModel")
 const StateModel = require('../models/stateModel');
+const getClientIp = require('../utils/getClientip')
 const path = require('path');
 const { sendEmail } = require('../Service/email');
 const sharp = require('sharp');
@@ -92,7 +93,9 @@ const perseonalDetails = async (req, res) => {
 
             projectDetail.workOrder = `/${fileFolder}/${file.filename}`;
         }
-
+        ["updatedAt", "deletedAt"].forEach((field) => delete projectDetail[field]);
+        projectDetail.createdById = req.session?.user.id ;
+        projectDetail.createdbyIp = await getClientIp(req)
         const newPersonalDetails = new projectdetailsModel(projectDetail);
         await newPersonalDetails.save();
 
@@ -376,6 +379,20 @@ const editProjectDetails = async (req, res) => {
             }
         }
 
+        if (updateData.projectName) {
+            const existingProject = await projectdetailsModel.findOne({
+                projectName: updateData.projectName,
+                _id: { $ne: id }, 
+            });
+
+            if (existingProject) {
+                return res.status(401).json({
+                    statusCode: 401,
+                    message: "Project Name must be unique. A project with this workOrderNo already exists.",
+                });
+            }
+        }
+
 
         let projectTypeNames = [];
         if (updateData.projectType) {
@@ -413,6 +430,11 @@ const editProjectDetails = async (req, res) => {
         } else {
             updateData.workOrder = project.workOrder; 
         }
+        updateData.updatedById = req.session?.user?.id || "system";
+        updateData.updatedByIp = await getClientIp(req);
+        updateData.updatedAt = new Date();
+        delete updateData.createdAt;
+        delete updateData.deletedAt;
         const updatedProject = await projectdetailsModel.findByIdAndUpdate(id, updateData, {
             new: true,
         }).populate({
