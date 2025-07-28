@@ -1,9 +1,14 @@
-const requestIp = require('request-ip')
+const requestIp = require('request-ip');
 
-const getClientIp = async(req)=>{
-    const ip = requestIp.getClientIp(req)
+const getClientIp = async (req) => {
+  let ip = requestIp.getClientIp(req);
 
-    return (ip ||req.headers['x-forwarded-for']?.split(',').shift() || req.socket?.remoteAddress || req.connection?.remoteAddress ||null);
-}
+  // Normalize IPv6 loopback
+  if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+    ip = '127.0.0.1';
+  }
+
+  return ip;
+};
 
 module.exports = getClientIp;

@@ -93,7 +93,6 @@ const perseonalDetails = async (req, res) => {
 
             projectDetail.workOrder = `/${fileFolder}/${file.filename}`;
         }
-        ["updatedAt", "deletedAt"].forEach((field) => delete projectDetail[field]);
         projectDetail.createdById = req.session?.user.id ;
         projectDetail.createdbyIp = await getClientIp(req)
         const newPersonalDetails = new projectdetailsModel(projectDetail);
@@ -464,8 +463,6 @@ const editProjectDetails = async (req, res) => {
         updateData.updatedById = req.session?.user?.id || "system";
         updateData.updatedByIp = await getClientIp(req);
         updateData.updatedAt = new Date();
-        delete updateData.createdAt;
-        delete updateData.deletedAt;
         const updatedProject = await projectdetailsModel.findByIdAndUpdate(id, updateData, {
             new: true,
         }).populate({
@@ -1890,6 +1887,7 @@ const updateTenderById = async (req, res) => {
       updateData.tenderDocument = tender.tenderDocument;
     }
     updateData.StatusChangeDate = new Date(); 
+    updateData.updatedByIp = await getClientIp(req);
     if(updateData.status==="Not Bidding"){updateData.messageStatus = null; }
     const updatedTender = await TenderTrackingModel.findByIdAndUpdate(id, updateData, {
       new: true,
@@ -1910,47 +1908,25 @@ const updateTenderById = async (req, res) => {
   }
 };
 
-const checkTenderName = async (req, res) => {
-  try {
-    const { tenderName } = req.query;
-    // Check in DB
-    console.log(tenderName);
-    const existingTender = await TenderTrackingModel.findOne({ tenderName: tenderName });
-console.log('qdwdqd');
-    if (existingTender) {
-      return res.json({ exists: true });
-    } else {
-      return res.json({ exists: false });
-    }
-
-  } catch (error) {
-    console.error('Error in checkTenderName:', error);
-    return res.status(500).json({
-      message: 'Internal server error',
-      exists: false,
-    });
-  }
-};
 const deleteTenderById = async(req,res) =>{
-
     try {
-    const { id } = req.params;
+        const { id } = req.params;
 
-    const deletedUser = await TenderTrackingModel.findByIdAndUpdate(
-      id,
-      { isDeleted: true, deletedAt: new Date(), },
-      { new: true },
-      
-    );
+        const deletedUser = await TenderTrackingModel.findByIdAndUpdate(
+        id,
+        { isDeleted: true, deletedAt: new Date(),deletedByIp:await getClientIp(req),deletedById:req.session?.user.id },
+        { new: true },
+        
+        );
 
-    if (!deletedUser) {
-      return res.status(404).json({ message: 'Tender not found' });
-    }
+        if (!deletedUser) {
+            return res.status(404).json({ message: 'Tender not found' });
+        }
 
-    return res.json({
-      message: 'Tender deleted successfully',
-      data: deletedUser ,
-    });
+        return res.json({
+        message: 'Tender deleted successfully',
+        data: deletedUser ,
+        });
 
   } catch (error) {
     console.error('Tender delete error:', error);
@@ -1964,7 +1940,7 @@ const deleteprojectsById = async(req,res) =>{
 
     const deletedProject = await projectdetailsModel.findByIdAndUpdate(
       id,
-      { isDeleted: true, deletedAt: new Date(), },
+      { isDeleted: true, deletedAt: new Date(),deletedByIp: await getClientIp(req),deletedById:req.session?.user.id },
       { new: true },
       
     );
@@ -2106,6 +2082,63 @@ const getReportById = async (req, res) => {
     }
 };
 
+ const postCreateTender = async(req,res)=>{
+     try {
+        const payload = req.body;
+        if(!payload){
+            res.status(400).json({
+                statusCode:400,
+                message :"please enter the require field",
+            })
+        }
+        const existingWorkOrder = await TenderTrackingModel.findOne({ tenderName: payload.tenderName });
+        if (existingWorkOrder) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Tender already exists. It must be unique.",
+            });
+        }
+        const file = req.file;    
+    
+        if (file) {
+            const fileExtension = file.mimetype.split('/')[1];
+            if (!['jpeg', 'png', 'pdf'].includes(fileExtension)) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    message: "Invalid file type. Only image or PDF files are allowed.",
+                });
+            }
+
+            let fileFolder = 'uploads/other'; 
+            if (file.mimetype.startsWith('image/')) {
+                fileFolder = 'uploads/image';
+            } else if (file.mimetype === 'application/pdf') {
+                fileFolder = 'uploads/agreement'; 
+            }
+
+            payload.tenderDocument = `/${fileFolder}/${file.filename}`;
+        }
+        payload.createdById = req.session?.user.id ;
+        payload.createdbyIp = await getClientIp(req)
+        const newPersonalDetails = new TenderTrackingModel(payload);
+        await newPersonalDetails.save();
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Project Created Successfully",
+            personalDetails: newPersonalDetails,
+        });
+
+    } catch (error) {
+        console.error("Error saving project:", error);
+        res.status(400).json({
+            statusCode: 400,
+            message: "Unable to save Data",
+            data: error.message || error,
+        });
+    }
+}
+
 
 module.exports = {
     perseonalDetails,
@@ -2150,7 +2183,6 @@ module.exports = {
     getEmpListTaskForce,
     updateTenderById,
     getTenderById,
-    checkTenderName,
     deleteTenderById,
     deleteTrue,
     getNetworkDeviceList,
@@ -2158,5 +2190,6 @@ module.exports = {
     getReportById,
 	getAllProjectDetails,
     getAllTenderList,
-    deleteprojectsById
+    deleteprojectsById,
+    postCreateTender,
 }

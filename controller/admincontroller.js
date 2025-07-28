@@ -309,7 +309,14 @@ const register = async(req,res) =>{
     const empdetails = await stpiEmpDetailsModel.findById({_id:empId})
     const plainPassword = generateRandomPassword();
 
-    const newAdmin = new loginModel({ empId:empId, username:empdetails.empid,email:empdetails.email,password:plainPassword,role });
+    const newAdmin = new loginModel({ empId:empId, 
+      username:empdetails.empid,
+      email:empdetails.
+      email,password:plainPassword,
+      role,
+      createdByIp:await getClientIp(req),
+      createdById:req.session?.user.id,
+    });
     await newAdmin.save();
     await sendEmail(
           empdetails.email, // to
@@ -543,6 +550,55 @@ const getloginDetails = async (req, res) => {
   }
 };
 
+const getUserDataById = async(req,res)=>{
+  try{
+    const { id } = req.params;
+    const users = await loginModel.findById(id).select('-password -ipAddressLog -__v -username');
+    if (!users) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: 'User not found',
+      });
+    }
+    let enrichedUser;
+    
+    if (users.empId) {
+      const empDetails = await stpiEmpDetailsModel.findById(users.empId).lean();
+      enrichedUser = {
+        ...users.toObject(),
+        empId: empDetails?.empid,
+        ename: empDetails?.ename,
+        centre: empDetails?.centre,
+        dir: empDetails?.dir,
+        etpe: empDetails?.etpe,
+        StatusNoida: empDetails?.StatusNoida,
+        taskForceMember: empDetails?.taskForceMember,
+      };
+    } else {
+      enrichedUser = {
+        ...users.toObject(),
+        empId: user.role || null,
+        ename: user.role || null,
+        centre: user.centre || 'Noida',
+        dir: user.directorates || 'Noida',
+        etpe: 'Regular',
+        taskForceMember: 'Yes',
+        StatusNoida: true,
+      };
+    }
+    res.status(200).json({
+      statusCode:200,
+      data:enrichedUser,
+    })
+  }
+  catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message:error
+    })
+  }
+}
+
 module.exports = {
   sync,
   getStpiEmpList,
@@ -555,5 +611,6 @@ module.exports = {
   login,
   logout,
   forgetPassword,
-  getloginDetails
+  getloginDetails,
+  getUserDataById
 }

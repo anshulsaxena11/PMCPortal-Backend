@@ -37,10 +37,20 @@ const loginSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  createdByIp:{
+    type:String
+  },
+  createdById:{
+    type:String,
+  },
+  isDeleted:{
+    type:Boolean,
+    default:false
+  },
   ipAddressLog: [
     {
       ip: { type: String },
-      date: { type: Date, default: Date.now }
+      date: { type: Date, default: null }
     }
   ]
 });
