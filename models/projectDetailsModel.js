@@ -73,6 +73,15 @@ const projectDetailsSchema = new mongoose.Schema({
         type:String
     },
 });
+projectDetailsSchema.virtual('phases', {
+    ref: 'ProjectPhase',           // 👈 model name of the target
+    localField: '_id',             // 👈 from ProjectDetails
+    foreignField: 'ProjectId',     // 👈 from ProjectPhase
+});
+
+projectDetailsSchema.set('toObject', { virtuals: true });
+projectDetailsSchema.set('toJSON', { virtuals: true });
+
 
 const ProjectDetails = mongoose.model('ProjectDetails', projectDetailsSchema);
 
