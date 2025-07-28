@@ -1654,68 +1654,68 @@ const getVulnabilityListSpecific = async(req,res) =>{
 }
 
 //Tender Detail
-const TenderTrackingDetails = async (req, res) => {
-  try {
-    const tenderDetail = req.body;
-    const file = req.file;
+// const TenderTrackingDetails = async (req, res) => {
+//   try {
+//     const tenderDetail = req.body;
+//     const file = req.file;
 
-    if (!tenderDetail || Object.keys(tenderDetail).length === 0) {
-      return res.status(400).json({
-        statusCode: 400,
-        message: "Please enter the required fields",
-      });
-    }
+//     if (!tenderDetail || Object.keys(tenderDetail).length === 0) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         message: "Please enter the required fields",
+//       });
+//     }
 
-    // Handle file upload
-    if (file) {
-		const fileExtension = path.extname(file.originalname).toLowerCase();
-      //const fileExtension = file.mimetype.split("/")[1];
+//     // Handle file upload
+//     if (file) {
+// 		const fileExtension = path.extname(file.originalname).toLowerCase();
+//       //const fileExtension = file.mimetype.split("/")[1];
 
-      // Validate file type
-      const allowedExtensions = [".jpeg", ".png", ".jpg", ".pdf", ".doc", ".docx"];
-      if (!allowedExtensions.includes(fileExtension)) {
-        return res.status(400).json({
-          statusCode: 400,
-          message: "Invalid file type. Only image, doc, or PDF files are allowed.",
-        });
-      }
+//       // Validate file type
+//       const allowedExtensions = [".jpeg", ".png", ".jpg", ".pdf", ".doc", ".docx"];
+//       if (!allowedExtensions.includes(fileExtension)) {
+//         return res.status(400).json({
+//           statusCode: 400,
+//           message: "Invalid file type. Only image, doc, or PDF files are allowed.",
+//         });
+//       }
 
-            tenderDetail.tenderDocument = '/${fileFolder}/${file.filename}';
-        }
+//             tenderDetail.tenderDocument = '/${fileFolder}/${file.filename}';
+//         }
 
-      const filePath =
-        req.filesPath && req.filesPath[file.fieldname]
-          ? req.filesPath[file.fieldname][0]
-          : `/uploads/tender/${file.filename}`; 
+//       const filePath =
+//         req.filesPath && req.filesPath[file.fieldname]
+//           ? req.filesPath[file.fieldname][0]
+//           : `/uploads/tender/${file.filename}`; 
 
 
-      tenderDetail.tenderDocument = filePath;
+//       tenderDetail.tenderDocument = filePath;
     
 
-    const newTenderDetails = new TenderTrackingModel(tenderDetail);
-    await newTenderDetails.save();
+//     const newTenderDetails = new TenderTrackingModel(tenderDetail);
+//     await newTenderDetails.save();
 
-    sendEmail(
-        'Test Email via Gmail',
-        'This is a plain text message',
-        '<p>This is an <strong>HTML</strong> message.</p>'
-    );
+//     sendEmail(
+//         'Test Email via Gmail',
+//         'This is a plain text message',
+//         '<p>This is an <strong>HTML</strong> message.</p>'
+//     );
 
-    return res.status(200).json({
-      statusCode: 200,
-      message: "Tender Created Successfully",
-      tenderDetails: newTenderDetails,
-    });
+//     return res.status(200).json({
+//       statusCode: 200,
+//       message: "Tender Created Successfully",
+//       tenderDetails: newTenderDetails,
+//     });
 
-  } catch (error) {
-    console.error("Error saving tender details:", error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: "Unable to save data",
-      error: error.message || error,
-    });
-  }
-};
+//   } catch (error) {
+//     console.error("Error saving tender details:", error);
+//     return res.status(500).json({
+//       statusCode: 500,
+//       message: "Unable to save data",
+//       error: error.message || error,
+//     });
+//   }
+// };
 
 // getting Tender List API
 const getAllTenderList = async (req, res) => {
@@ -2118,11 +2118,41 @@ const getReportById = async (req, res) => {
 
             payload.tenderDocument = `/${fileFolder}/${file.filename}`;
         }
+        const parsedTaskForce = JSON.parse(payload.taskForce);
+        payload.taskForce = parsedTaskForce.name;
         payload.createdById = req.session?.user.id ;
         payload.createdbyIp = await getClientIp(req)
+        const empdetails = await stpiEmpDetailsModel.findById({_id:parsedTaskForce.id})
         const newPersonalDetails = new TenderTrackingModel(payload);
         await newPersonalDetails.save();
+        const formattedLastDate = new Date(payload.lastDate).toLocaleDateString('en-GB');
+        await sendEmail(
+        empdetails.email, // to
+        `Tender Allotment Notification – ${payload.tenderName}`, // subject
+        '', // plain text (optional, or you can add a summary string)
+        `
+            <p>Dear <strong>${parsedTaskForce.name}</strong>,</p>
 
+            <p>We are pleased to inform you that the tender <strong>${payload.tenderName}</strong> of 
+            <strong>${payload.organizationName}</strong> has been allotted to you.</p>
+
+            <h4>Allotment Details:</h4>
+            <ul>
+            <li><strong>Tender Name:</strong> ${payload.tenderName}</li>
+            <li><strong>Organization Name:</strong> ${payload.organizationName}</li>
+            <li><strong>Last Day of Bidding:</strong> ${formattedLastDate}</li>
+            <li><strong>State:</strong> ${payload.state}</li>
+            <li><strong>Link:</strong> <a href="https://pmcportal.stpi.in" target="_blank">pmcportal.stpi.in</a></li>
+            </ul>
+
+            <p>We look forward to your response. For more details, please refer to the portal.</p>
+
+            <p>Thank you,<br />
+            <strong>PMC Portal</strong><br/>
+            <a href="https://pmcportal.stpi.in">pmcportal.stpi.in</a>
+            </p>
+        `
+        );
         res.status(200).json({
             statusCode: 200,
             message: "Project Created Successfully",
@@ -2178,7 +2208,6 @@ module.exports = {
     getTypeOfWork,
     getVulnabilityListSpecific,
     getTenderDetails,
-    TenderTrackingDetails,
     getState,
     getEmpListTaskForce,
     updateTenderById,
