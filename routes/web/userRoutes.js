@@ -15,7 +15,6 @@ routes.post('/project-mapping',authMiddleware,allowRoles('Admin','SubAdmin'),Use
 routes.post('/skills',authMiddleware,allowRoles('Admin'),UserCtrl.skillMapping)
 routes.post('/toolsandHardwareMaster',authMiddleware,allowRoles('Admin'),UserCtrl.postToolsAndHardwareMaster)
 routes.post('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.postToolsAndHardware)
-routes.post('/TenderTrackingDetails',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('file'),UserCtrl.TenderTrackingDetails)
 routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.postCreateTender);
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
@@ -45,7 +44,6 @@ routes.get('/toolsandHardwareMaster',authMiddleware,allowRoles('Admin','SubAdmin
 routes.get('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getToolsAndHardwareList)
 routes.get('/Type-Of-Work',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getTypeOfWork)
 routes.get('/VulnerabilityListSpecific',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getVulnabilityListSpecific)
-routes.post('/TenderTrackingDetails',authMiddleware,allowRoles('Admin'),upload.single('file'),UserCtrl.TenderTrackingDetails)
 routes.get('/Tender',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getTenderDetails)
 routes.get('/Alltender',authMiddleware,allowRoles('Admin'),UserCtrl.getAllTenderList)
 routes.get('/state',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getState)
