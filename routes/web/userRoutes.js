@@ -16,6 +16,7 @@ routes.post('/skills',authMiddleware,allowRoles('Admin'),UserCtrl.skillMapping)
 routes.post('/toolsandHardwareMaster',authMiddleware,allowRoles('Admin'),UserCtrl.postToolsAndHardwareMaster)
 routes.post('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.postToolsAndHardware)
 routes.post('/TenderTrackingDetails',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('file'),UserCtrl.TenderTrackingDetails)
+routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.postCreateTender);
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
@@ -56,7 +57,6 @@ routes.get('/report/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getReportDe
 routes.get('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.timeline)
 routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getTenderById)
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
-routes.get('/checkTenderName/',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.checkTenderName);
 routes.put('/soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTenderById);
 routes.put('/projects-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteprojectsById);
  

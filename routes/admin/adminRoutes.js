@@ -19,5 +19,6 @@ routes.get('/validate', authMiddleware, (req, res) => {
 routes.post('/logout',adminCtrl.logout) 
 routes.post('/forget-Password',adminCtrl.forgetPassword)
 routes.get('/user',authMiddleware,allowRoles('Admin'),adminCtrl.getloginDetails)
+routes.get('/register/:id',authMiddleware,allowRoles('Admin'),adminCtrl.getUserDataById)
 
 module.exports = routes 

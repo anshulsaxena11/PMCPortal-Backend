@@ -16,10 +16,28 @@ const TenderTrackingSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    createdbyIp:{
+        type:String
+    },
+    createdById:{
+        type:String
+    },
+    updatedByIp:{
+        type:String
+    },
+    updatedById:{
+        type:String
+    },
     isDeleted: { type: Boolean, default: false },
     deletedAt: {
       type: Date,
       default: null,
+    },
+     deletedByIp:{
+        type:String
+    },
+    deletedById:{
+        type:String
     },
 });
 

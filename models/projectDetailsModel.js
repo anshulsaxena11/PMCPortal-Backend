@@ -53,7 +53,7 @@ const projectDetailsSchema = new mongoose.Schema({
     },
     updatedAt:{
         type: Date,
-        default: Date.now,
+        default: null,
     },
     updatedByIp:{
         type:String
