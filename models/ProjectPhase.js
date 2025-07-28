@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const ProjectPhaseSchema = new mongoose.Schema({
     ProjectId:{
         type:mongoose.Schema.Types.ObjectId,
+        ref: 'ProjectDetails',
         required:true,
         unique:true
     },

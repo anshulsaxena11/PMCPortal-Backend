@@ -253,19 +253,49 @@ const getAllProjectDetails = async (req, res) => {
     }
   };
   
+  const getAllprojectData = async (req, res) => {
+
+      try {
+      
+      const projects = await projectdetailsModel.find()
+      .populate({
+        path: 'phases', // virtual field
+        select: 'amountRecived amountBuild amountStatus', // optional fields
+      })
+      .sort({ createdAt: -1 }); // optional sorting
+
+      res.status(200).json({
+        statuscode: 200,
+        success: true,
+        data: projects,
+      });
+    } catch (error) {
+      res.status(400).json({
+        statusCode: 400,
+        success: false,
+        message: "Server Error",
+        error,
+      });
+    }
+}
+  
 // getting projrct List API
 const getProjecDetails = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
 
-    // Base query always includes isDeleted: false
     let query = { isDeleted: false };
 
-    // If there is a search term, add search conditions to the $or array
     if (search) {
       query.$or = [
         { workOrderNo: { $regex: search, $options: "i" } },
-        { projectName: { $regex: search, $options: "i" } }
+        { projectName: { $regex: search, $options: "i" } },
+        { projectManager: { $regex: search, $options: "i" } },
+        { type: { $regex: search, $options: "i" } },
+        { orginisationName: { $regex: search, $options: "i" } },
+        { workOrderNo: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -278,15 +308,15 @@ const getProjecDetails = async (req, res) => {
         select: "ProjectTypeName",
       })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(limit) // ✅ now `limit` is an actual number
       .sort({ createdAt: -1 });
 
     res.status(200).json({
       statuscode: 200,
       success: true,
       total: totalCount,
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page,
+      limit,
       totalPages: Math.ceil(totalCount / limit),
       data: projects,
     });
@@ -299,6 +329,7 @@ const getProjecDetails = async (req, res) => {
     });
   }
 };
+
 
 
 //get project details by Id
@@ -2066,6 +2097,7 @@ module.exports = {
     directrate,
     getDirectrateList,
     getProjecDetails,
+    getAllprojectData,
     getProjecDetailsById,
     editProjectDetails,
     getReportDetails,

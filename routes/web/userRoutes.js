@@ -31,6 +31,7 @@ routes.get('/AllprojectDetails',authMiddleware,allowRoles('Admin'),UserCtrl.getA
 routes.get('/projectName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getProjectName)
 routes.get('/directrate' ,authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getDirectrateList)
 routes.get('/projectDetails',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getProjecDetails)
+routes.get('/AllprojectData',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getAllprojectData)
 routes.get('/report',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getReportDetails);
 routes.get('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getReportById)
 routes.get('/allreport',authMiddleware,allowRoles('Admin'),UserCtrl.getAllReport);
