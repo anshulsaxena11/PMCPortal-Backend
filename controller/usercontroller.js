@@ -2116,7 +2116,7 @@ const getReportById = async (req, res) => {
     
         if (file) {
             const fileExtension = file.originalname.split('.').pop().toLowerCase();
-            if (!['jpeg', 'png', 'pdf','docx', 'doc'].includes(fileExtension)) {
+            if (!['jpeg', 'png','jpg', 'pdf','docx', 'doc'].includes(fileExtension)) {
                 return res.status(400).json({
                     statusCode: 400,
                     message: "Invalid file type. Only image or PDF files are allowed.",
