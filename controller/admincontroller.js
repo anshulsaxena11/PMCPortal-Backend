@@ -319,15 +319,15 @@ const register = async(req,res) =>{
     });
     await newAdmin.save();
     await sendEmail(
-          empdetails.email, // to
-          'Your Login Credentials', // subject
+          empdetails.email, 
+          'Your Login Credentials', 
           `Username: ${empdetails.empid} or ${empdetails.email}\nPassword: ${plainPassword}`, // text
           `
             <h3>Welcome!</h3>
             <p>Username: <strong>${empdetails.empid} or ${empdetails.email}</strong></p>
             <p>Password: <strong>${plainPassword}</strong></p>
             <p>This is an <strong>HTML</strong> message.</p>
-          ` // html
+          ` 
         );
     res.status(200).json({
       statusCode:200,
@@ -369,7 +369,7 @@ const login = async (req,res)=>{
       ip: ip,
       date: new Date()
     };
-    const empId = user.user;
+    const empId = user.empId;
     let name 
     if(empId){
       const emp = await stpiEmpDetailsModel.findById({_id:empId}) 
@@ -385,7 +385,7 @@ const login = async (req,res)=>{
 
     req.session.user = {
       id: user._id,
-      empId: user.username,
+      empId: name,
       role: user.role,
       token: token 
     };
@@ -571,16 +571,18 @@ const getUserDataById = async(req,res)=>{
         centre: empDetails?.centre,
         dir: empDetails?.dir,
         etpe: empDetails?.etpe,
+        edesg: empDetails?.edesg,
         StatusNoida: empDetails?.StatusNoida,
         taskForceMember: empDetails?.taskForceMember,
       };
     } else {
       enrichedUser = {
         ...users.toObject(),
-        empId: user.role || null,
-        ename: user.role || null,
-        centre: user.centre || 'Noida',
-        dir: user.directorates || 'Noida',
+        empId: users.role || null,
+        ename: users.role || null,
+        centre: users.centre || 'Noida',
+        dir: users.directorates || 'Noida',
+        edesg: users.edesg || 'Admin',
         etpe: 'Regular',
         taskForceMember: 'Yes',
         StatusNoida: true,
