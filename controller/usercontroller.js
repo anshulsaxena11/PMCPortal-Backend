@@ -77,14 +77,14 @@ const perseonalDetails = async (req, res) => {
     
         if (file) {
             const fileExtension = file.mimetype.split('/')[1];
-            if (!['jpeg', 'png', 'pdf'].includes(fileExtension)) {
+            if (!['jpeg', 'jpg', 'png', 'pdf'].includes(fileExtension)) {
                 return res.status(400).json({
                     statusCode: 400,
                     message: "Invalid file type. Only image or PDF files are allowed.",
                 });
             }
 
-            let fileFolder = 'uploads/other'; 
+            let fileFolder = 'uploads/documents'; 
             if (file.mimetype.startsWith('image/')) {
                 fileFolder = 'uploads/image';
             } else if (file.mimetype === 'application/pdf') {
@@ -2123,7 +2123,7 @@ const getReportById = async (req, res) => {
                 });
             }
 
-            let fileFolder = 'uploads/other'; 
+            let fileFolder = 'uploads/documents'; 
             if (file.mimetype.startsWith('image/')) {
                 fileFolder = 'uploads/image';
             } else if (file.mimetype === 'application/pdf') {
