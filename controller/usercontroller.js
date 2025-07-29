@@ -1304,41 +1304,55 @@ const getStpiEmpListActive = async (req, res) => {
   }
 
     const getToolsAndHardware = async (req, res) => {
-        try {
-            const { page = 1, limit = 10, search=" ",toolsAndHardwareType=" " } = req.query;
-            const query = {
-            ...(search.trim()
-                ? {
-                    $or: [
-                    { tollsName: { $regex: search, $options: "i" } },
-                    { toolsAndHardwareType: { $regex: search, $options: "i" } },
-                    ],
-                }
-                : {}),
-                ...(toolsAndHardwareType.trim() ? { toolsAndHardwareType: toolsAndHardwareType } : {}),  
-            };
+  try {
+    let {
+      page = 1,
+      limit = 10,
+      search = " ",
+      toolsAndHardwareType = " ",
+    } = req.query;
 
-            const totalCount = await ToolsAndHardwareMasterMdel.countDocuments(query);
-            const data = await ToolsAndHardwareMasterMdel.find(query).skip((page - 1) * limit).limit(parseInt(limit)).sort({ createdAt: -1 });
-            
+    // ✅ convert to integers
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-
-            res.status(200).json({
-            statusCode: 200,
-            success: true,
-            total: totalCount,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(totalCount / limit),
-            data: data,
-            });
-        } catch (error) {
-            res.status(400).json({
-            statusCode: 400,
-            message: error.message || "Something went wrong",
-            });
-        }
+    const query = {
+      ...(search.trim()
+        ? {
+            $or: [
+              { tollsName: { $regex: search, $options: "i" } },
+              { toolsAndHardwareType: { $regex: search, $options: "i" } },
+            ],
+          }
+        : {}),
+      ...(toolsAndHardwareType.trim()
+        ? { toolsAndHardwareType: toolsAndHardwareType }
+        : {}),
     };
+
+    const totalCount = await ToolsAndHardwareMasterMdel.countDocuments(query);
+    const data = await ToolsAndHardwareMasterMdel.find(query)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      statusCode: 200,
+      success: true,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+      data,
+    });
+  } catch (error) {
+    res.status(400).json({
+      statusCode: 400,
+      message: error.message || "Something went wrong",
+    });
+  }
+};
+
 
     const editToolsAndData = async (req, res) => {
         try {
