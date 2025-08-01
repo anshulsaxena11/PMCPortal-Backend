@@ -472,7 +472,8 @@ const editProjectDetails = async (req, res) => {
         });;
 
         const workOrderUrl = updatedProject.workOrder
-        ? `${req.protocol}://${req.get("host")}$:{process.env.DOC_PORT}/${updatedProject.workOrder}`
+        
+        ? `${req.protocol}://${req.get("host")}:${process.env.DOC_PORT}/${updatedProject.workOrder}`
         : null;
 
         res.status(200).json({
