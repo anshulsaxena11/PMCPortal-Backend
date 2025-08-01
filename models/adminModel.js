@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-const loginSchema = new mongoose.Schema({
-  empId:{
-     type: mongoose.Schema.Types.ObjectId,
-  },
+const AdminSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
@@ -55,7 +52,7 @@ const loginSchema = new mongoose.Schema({
   ]
 });
 
-loginSchema.pre('save', async function (next) {
+AdminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
 
   const isAlreadyHashed = /^\$2[aby]\$/.test(this.password); 
@@ -71,8 +68,8 @@ loginSchema.pre('save', async function (next) {
 });
 
 
-loginSchema.methods.comparePassword = async function (candidatePassword) {
+AdminSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('Login', loginSchema);
+module.exports = mongoose.model('Admin', AdminSchema);
