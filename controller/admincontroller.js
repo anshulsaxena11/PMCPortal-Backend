@@ -109,7 +109,7 @@ const sync = async(req,res) =>{
         
         res.status(200).json({
             statusCode:200,
-            message:"data has benn syncronise suceefully",
+            message:"data has been syncronise suceefully",
         })
         
     }catch(error){
@@ -478,7 +478,7 @@ const forgetPassword = async(req,res) =>{
  
     res.status(200).json({
         statusCode:200,
-        message:"Credentials has benn send to email"
+        message:"Credentials has been send to email"
     })
 
   } catch(error){
