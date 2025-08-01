@@ -128,7 +128,7 @@ const deviceList = async (req,res) => {
             await newdevicelist.save();
             res.status(200).json({
                 statusCode:200,
-                message:"Device has benn Updated",
+                message:"Device has been Updated",
                 data:newdevicelist
             })
         }
@@ -648,7 +648,7 @@ const directrate = async (req,res) => {
             await newDirectrate.save();
             res.status(200).json({
                 statusCode:200,
-                message:"Directorates has benn Updated",
+                message:"Directorates has been Updated",
                 data:newDirectrate
             })
         }

@@ -20,7 +20,7 @@ routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upl
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
 routes.put('/toolsandHardwareMaster/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editToolsAndData)
-routes.put('/toolsAndHardware/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.editToolsAndHardware)
+routes.put('/toolsAndHardware/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.editToolsAndHardware)
 routes.put('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.timelinePhase)
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.put('/reportDeleted/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTrue)
@@ -50,11 +50,11 @@ routes.get('/state',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtr
 routes.get('/EmpListTF',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpListTaskForce)
 routes.get('/devices-list',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getNetworkDeviceList)
 //get by id
-routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getProjectTypeById)
-routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getProjecDetailsById)
+routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeById)
+routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetailsById)
 routes.get('/report/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getReportDetailsById)
-routes.get('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.timeline)
-routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getTenderById)
+routes.get('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.timeline)
+routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getTenderById)
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.put('/soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTenderById);
 routes.put('/projects-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteprojectsById);
