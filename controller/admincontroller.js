@@ -3,7 +3,9 @@ const stpiEmpDetailsModel = require('../models/StpiEmpModel')
 const loginModel = require('../models/loginModel')
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../Service/email');
+const adminModel = require('../models/adminModel.js')
 const getClientIp = require('../utils/getClientip')
+const bcrypt = require('bcrypt');
 
 function generateRandomPassword(length = 12) {
   const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -350,13 +352,20 @@ const login = async (req,res)=>{
         {email:username}
       ]
     }).select("+password");
-    if (!user){
+    const admin = await adminModel.findOne({
+       $or:[
+        {username:username},
+        {email:username}
+      ]
+    }).select("+password");
+    if (!user && !admin){
       return res.status(404).json({
         statusCode:404,
         message:"Incorrect Username or Password "
       })
     }
-    const isMatched = await user.comparePassword(password)
+    const account = user || admin;
+    const isMatched = await account.comparePassword(password)
     if (!isMatched){
        return res.status(404).json({
         statusCode:404,
@@ -365,35 +374,35 @@ const login = async (req,res)=>{
     }
     const ip =await getClientIp(req)
 
-     user.ipAddressLog = {
+     account.ipAddressLog = {
       ip: ip,
       date: new Date()
     };
-    const empId = user.empId;
     let name 
-    if(empId){
+    if(user){
+      const empId = user.empId;
       const emp = await stpiEmpDetailsModel.findById({_id:empId}) 
       name = emp.ename
     }else {
-      name = user.role
+      name = admin.role
     }
-    await user.save({ validateBeforeSave: false });
+    await account.save({ validateBeforeSave: false });
 
-    const token =jwt.sign({id:user._id,role:user.role,emp:user.username,name:name},process.env.JWT_SECRET,{
+    const token =jwt.sign({id:account._id,role:account.role,emp:account.username,name:name},process.env.JWT_SECRET,{
       expiresIn:'1d'
     })
 
     req.session.user = {
-      id: user._id,
+      id: account._id,
       empId: name,
-      role: user.role,
+      role: account.role,
       token: token 
     };
       
     res.status(200).json({
       statusCode: 200,
       message: 'Login successful',
-      user: { name: name, role: user.role }
+      user: { name: name, role: account.role }
     });
   }catch(error){
     res.status(400).json({
@@ -497,30 +506,17 @@ const getloginDetails = async (req, res) => {
     const users = await loginModel.find(filter).select('-password -ipAddressLog -__v -username');
     const enrichedUsers = await Promise.all(
       users.map(async (user) => {
-        if (user.empId) {
-          const empDetails = await stpiEmpDetailsModel.findById(user.empId).lean();
-          return {
-            ...user.toObject(),
-            empId: empDetails?.empid,
-            ename: empDetails?.ename,
-            centre: empDetails?.centre,
-            dir: empDetails?.dir,
-            etpe: empDetails?.etpe,
-            StatusNoida: empDetails?.StatusNoida,
-            taskForceMember: empDetails?.taskForceMember,
-          };
-        } else {
-          return {
-            ...user.toObject(),
-            empId: user.role || null,
-            ename: user.role || null,
-            centre: user.centre || 'Noida',
-            dir: user.directorates || 'Noida',
-            etpe: 'Regular',
-            taskForceMember: 'Yes',
-            StatusNoida: true
-          };
-        }
+        const empDetails = await stpiEmpDetailsModel.findById(user.empId).lean();
+        return {
+          ...user.toObject(),
+          empId: empDetails?.empid,
+          ename: empDetails?.ename,
+          centre: empDetails?.centre,
+          dir: empDetails?.dir,
+          etpe: empDetails?.etpe,
+          StatusNoida: empDetails?.StatusNoida,
+          taskForceMember: empDetails?.taskForceMember,
+        };
       })
     );
     let filteredUsers = enrichedUsers;
@@ -561,8 +557,6 @@ const getUserDataById = async(req,res)=>{
       });
     }
     let enrichedUser;
-    
-    if (users.empId) {
       const empDetails = await stpiEmpDetailsModel.findById(users.empId).lean();
       enrichedUser = {
         ...users.toObject(),
@@ -575,19 +569,6 @@ const getUserDataById = async(req,res)=>{
         StatusNoida: empDetails?.StatusNoida,
         taskForceMember: empDetails?.taskForceMember,
       };
-    } else {
-      enrichedUser = {
-        ...users.toObject(),
-        empId: users.role || null,
-        ename: users.role || null,
-        centre: users.centre || 'Noida',
-        dir: users.directorates || 'Noida',
-        edesg: users.edesg || 'Admin',
-        etpe: 'Regular',
-        taskForceMember: 'Yes',
-        StatusNoida: true,
-      };
-    }
     res.status(200).json({
       statusCode:200,
       data:enrichedUser,
@@ -600,6 +581,199 @@ const getUserDataById = async(req,res)=>{
     })
   }
 }
+
+const updateUserDataById = async(req,res)=>{
+  try{
+    const { id } = req.params;
+    const payload = req.body;
+    const user = await loginModel.findById({_id:id})
+    if(!user){
+      return res.status(401).json({
+        statusCode:401,
+        message:'User Doesnt exist!!'
+      })
+    }
+    user.role = payload.role;
+    await user.save();
+
+    res.status(200).json({
+      statusCode:200,
+      message:"Role has been Updated"
+    })
+  } catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message:error
+    })
+  }
+}
+
+const checkEmail = async(req,res)=>{
+  try{
+    const {username} = req.body;
+    const user = await loginModel.findOne({
+      $or:[
+        {username:username},
+        {email:username}
+      ]
+    });
+    if (!user){
+      return res.status(401).json({
+        statusCode:401,
+        exists: false,
+        message:'User does not exist'
+      })
+    }
+    res.status(200).json({
+      statusCode:200,
+      exists: true,
+      message:'Email Exist'
+    })
+  }catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message: error
+    })
+  }
+}
+
+const passwordReset = async(req,res) =>{
+  try{
+    const payload = req.body
+    const user = await loginModel.findOne({
+      $or:[
+        {username:payload.username},
+        {email:payload.username}
+      ]
+    }).select('+password +email');;
+   if (!user){
+      return res.status(401).json({
+        statusCode:401,
+        exists: false,
+        message:'User does not exist'
+      })
+    }
+    
+    if (payload.newPassword !== payload.confirmPassword ){
+      return res.status(401).json({
+        statusCode:401,
+        exists: false,
+        message:'Password Not matched'
+      })
+    }
+     if (!payload.newPassword || !payload.confirmPassword ){
+      return res.status(401).json({
+        statusCode:401,
+        exists: false,
+        message:'Please Enter Password'
+      })
+    }
+
+    const isSamePassword = await bcrypt.compare(payload.newPassword, user.password);
+     if (isSamePassword) {
+      return res.status(401).json({
+        statusCode: 400,
+        message: 'New password must be different from the old password'
+      });
+    }
+     const token = jwt.sign(
+      { username: user._id, hashedPassword:payload.newPassword },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    const empdetails = await stpiEmpDetailsModel.findById({_id:user.empId}) 
+    const FRONTEND_URL = process.env.React_URL ;
+
+    const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
+
+      await sendEmail(
+      user.email, // to
+      'Password Reset Link - PMC Portal', // subject
+      '', // text
+      `
+        <p>Dear <strong>${empdetails.ename}</strong>,</p>
+
+        <p>You requested to reset your password. Click the link below to confirm your new password:</p>
+        <a href="${resetLink}" style="padding:10px 15px;background-color:#1976d2;color:white;text-decoration:none;border-radius:5px;">Reset Password</a>
+        <p>This link will expire in 10 minutes.</p>
+
+        <p>Thank you,<br />
+          <strong>PMC Portal</strong><br/>
+          <a href="https://pmcportal.stpi.in">pmcportal.stpi.in</a>
+        </p>
+      ` 
+    );
+
+    res.status(200).json({
+      statusCode:200,
+      message:'Please check Email to change Password',
+    })
+  }catch(error){
+    res.status(400).json({
+      statusCode: 400,
+      message:error
+    });
+  }
+}
+
+const resetPasswordVerify = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(401).json({
+        statusCode: 401,
+        message: 'Token is not available'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          statusCode: 401,
+          message: 'The reset link has expired. Please request a new one.'
+        });
+      } else if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+          statusCode: 401,
+          message: 'Invalid reset link.'
+        });
+      } else {
+        return res.status(400).json({
+          statusCode: 401,
+          message: 'Token verification failed.'
+        });
+      }
+    }
+      const user = await loginModel.findById({_id:decoded.username})
+      if (!user){
+        return res.status(401).json({
+          statusCode:401,
+          message:"User Not Found"
+        })
+      }
+    
+      user.password =decoded.hashedPassword;
+      await user.save();
+
+      decoded = null;
+
+    res.status(200).json({
+      statusCode: 200,
+      message: 'Password has been reset successfully.'
+    });
+
+  } catch (error) {
+    res.status(400).json({
+      statusCode: 400,
+      message: error
+    });
+  }
+};
 
 module.exports = {
   sync,
@@ -614,5 +788,9 @@ module.exports = {
   logout,
   forgetPassword,
   getloginDetails,
-  getUserDataById
+  getUserDataById,
+  updateUserDataById,
+  checkEmail,
+  passwordReset,
+  resetPasswordVerify
 }
