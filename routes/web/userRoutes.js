@@ -27,14 +27,14 @@ routes.put('/reportDeleted/:id',authMiddleware,allowRoles('Admin','SubAdmin'),Us
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
-routes.get('/AllprojectDetails',authMiddleware,allowRoles('Admin'),UserCtrl.getAllProjectDetails)
+routes.get('/AllprojectDetails',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllProjectDetails)
 routes.get('/projectName',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectName)
 routes.get('/directrate' ,authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getDirectrateList)
 routes.get('/projectDetails',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetails)
 routes.get('/AllprojectData',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllprojectData)
 routes.get('/report',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getReportDetails);
 routes.get('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getReportById)
-routes.get('/allreport',authMiddleware,allowRoles('Admin'),UserCtrl.getAllReport);
+routes.get('/allreport',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllReport);
 routes.get('/vulnerability',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getVulnerability);
 routes.get('/round',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getRound)
 routes.get('/fullreport',authMiddleware,allowRoles('Admin'),UserCtrl.getFullReport)
@@ -45,7 +45,7 @@ routes.get('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin','Use
 routes.get('/Type-Of-Work',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getTypeOfWork)
 routes.get('/VulnerabilityListSpecific',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getVulnabilityListSpecific)
 routes.get('/Tender',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getTenderDetails)
-routes.get('/Alltender',authMiddleware,allowRoles('Admin'),UserCtrl.getAllTenderList)
+routes.get('/Alltender',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllTenderList)
 routes.get('/state',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getState)
 routes.get('/EmpListTF',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpListTaskForce)
 routes.get('/devices-list',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getNetworkDeviceList)
