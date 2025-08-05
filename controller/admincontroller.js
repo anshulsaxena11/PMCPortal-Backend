@@ -707,7 +707,7 @@ const passwordReset = async(req,res) =>{
 
     res.status(200).json({
       statusCode:200,
-      message:'Please check Email to change Password',
+      message:'An email has been sent to your STPI email ID. Please verify it there — only then will the changed password take effect.',
     })
   }catch(error){
     res.status(400).json({
