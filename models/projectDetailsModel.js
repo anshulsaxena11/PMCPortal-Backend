@@ -74,9 +74,9 @@ const projectDetailsSchema = new mongoose.Schema({
     },
 });
 projectDetailsSchema.virtual('phases', {
-    ref: 'ProjectPhase',           // 👈 model name of the target
-    localField: '_id',             // 👈 from ProjectDetails
-    foreignField: 'ProjectId',     // 👈 from ProjectPhase
+    ref: 'ProjectPhase',         
+    localField: '_id',             
+    foreignField: 'ProjectId',     
 });
 
 projectDetailsSchema.set('toObject', { virtuals: true });
