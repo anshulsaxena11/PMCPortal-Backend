@@ -292,12 +292,12 @@ const getProjecDetails = async (req, res) => {
 
     if (search) {
       query.$or = [
-        { workOrderNo: { $regex: search, $options: "i" } },
+        { orderType: { $regex: search, $options: "i" } },
         { projectName: { $regex: search, $options: "i" } },
         { projectManager: { $regex: search, $options: "i" } },
         { type: { $regex: search, $options: "i" } },
         { orginisationName: { $regex: search, $options: "i" } },
-        { workOrderNo: { $regex: search, $options: "i" } },
+        { typeOfWork: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -309,8 +309,12 @@ const getProjecDetails = async (req, res) => {
         model: "ProjectType",
         select: "ProjectTypeName",
       })
+      .populate({
+        path: "phases", 
+        select: "amountStatus", 
+      })
       .skip((page - 1) * limit)
-      .limit(limit) // ✅ now `limit` is an actual number
+      .limit(limit) 
       .sort({ createdAt: -1 });
 
     res.status(200).json({
