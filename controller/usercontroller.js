@@ -1568,16 +1568,22 @@ const timelinePhase = async (req, res) => {
             });
         }
 
+         if (!updateData.invoiceGenerated || !Array.isArray(updateData.invoiceGenerated)) {
+            return res.status(400).json({
+                statuscode: 400,
+                message: "Invoice must be a valid array.",
+            });
+        }
+
         let projectPhase = await ProjectPhase.findOne({ ProjectId: id });
 
         if (!projectPhase) {
             // Create new document
             const newProjectPhase = new ProjectPhase({
                 ProjectId: id,
-                amountBuild:updateData.amountBuild,
-                amountRecived:updateData.amountRecived,
                 amountStatus:updateData.amountStatus,
                 phase: updateData.phase,
+                invoiceGenerated:updateData.invoiceGenerated
             });
 
             await newProjectPhase.save();
@@ -1588,10 +1594,9 @@ const timelinePhase = async (req, res) => {
                 data: newProjectPhase,
             });
         } else {
-            projectPhase.amountBuild=updateData.amountBuild
-            projectPhase.amountRecived=updateData.amountBuild
             projectPhase.amountStatus=updateData.amountStatus
             projectPhase.phase = updateData.phase;
+            projectPhase.invoiceGenerated = updateData.invoiceGenerated;
 
             await projectPhase.save();
 

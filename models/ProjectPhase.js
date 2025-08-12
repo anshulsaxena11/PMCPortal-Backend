@@ -7,12 +7,12 @@ const ProjectPhaseSchema = new mongoose.Schema({
         required:true,
         unique:true
     },
-    amountBuild:{
-        type:String,
-    },
-    amountRecived:{
-        type:String,
-    },
+    invoiceGenerated:[{
+        noOfInvoice:{type:String},
+        invoiceDate:{type:Date,default:null},
+        invoiceValue:{type:String},
+        amountRaised:{type:String}
+    }],
     amountStatus:{
         type:String,
     },
