@@ -1583,7 +1583,9 @@ const timelinePhase = async (req, res) => {
                 ProjectId: id,
                 amountStatus:updateData.amountStatus,
                 phase: updateData.phase,
-                invoiceGenerated:updateData.invoiceGenerated
+                invoiceGenerated:updateData.invoiceGenerated,
+                createdByIP:await getClientIp(req),
+                createdById:req.session?.user.id, 
             });
 
             await newProjectPhase.save();
@@ -1597,6 +1599,9 @@ const timelinePhase = async (req, res) => {
             projectPhase.amountStatus=updateData.amountStatus
             projectPhase.phase = updateData.phase;
             projectPhase.invoiceGenerated = updateData.invoiceGenerated;
+            projectPhase.updatedAt=Date.now(),
+            projectPhase.updatedByIp = await getClientIp(req),
+            projectPhase.updatedById = req.session?.user.id, 
 
             await projectPhase.save();
 

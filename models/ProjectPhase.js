@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const getClientIp = require('../utils/getClientip')
 
 const ProjectPhaseSchema = new mongoose.Schema({
     ProjectId:{
@@ -28,6 +29,22 @@ const ProjectPhaseSchema = new mongoose.Schema({
     createdAt:{
         type: Date,
         default: Date.now,
+    },
+    createdByIP:{
+        type:String
+    },
+     createdById:{
+        type:String
+    },
+    updatedAt:{
+        type: Date,
+        default: null,
+    },
+    updatedByIp:{
+        type:String
+    },
+    updatedById:{
+        type:String
     },
 })
 
