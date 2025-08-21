@@ -2270,8 +2270,14 @@ const putTypeOfWorkById = async(req,res)=>{
 
         await TypeOfWorkModel.findByIdAndUpdate(
             id,
-            { $set: updateData },
-            { new: true, runValidators: true } 
+            { $set: {
+                    ...updateData,
+                    updatedAt:Date.now(),
+                    updatedIp: await getClientIp(req), 
+                    updatedId: req.session?.user.id
+                } 
+            },
+            { new: true, runValidators: true },
         );
 
         res.status(200).json({
@@ -2286,6 +2292,49 @@ const putTypeOfWorkById = async(req,res)=>{
         });
     }
 
+}
+
+const postTypeOfWork = async(req,res)=>{
+    try{
+        const payload = req.body;
+        if(!payload){
+            return res.status(401).json({
+                statusCode:401,
+                message:'Type Of Work is not empty'
+            })
+        }
+        if (payload.typeOfWork){
+            const existTypeOfWork = await TypeOfWorkModel.findOne({
+                typeOfWork: payload.typeOfWork, 
+            });
+
+            if(existTypeOfWork){
+                 return res.status(401).json({
+                    statusCode: 401,
+                    message: "Type Of Work must be unique. A Type Of Work already exists.",
+                });
+            }
+        }
+
+        const newTypeOfWork = new TypeOfWorkModel({
+            typeOfWork: payload.typeOfWork,
+            createdIp: await getClientIp(req),
+            createdId: req.session?.user.id 
+        });
+
+        await newTypeOfWork.save();
+
+        res.status(200).json({
+            statusCode:200,
+            message:"Types of Work Created Sucessfully"
+        })
+
+    }catch(error){
+       res.status(400).json({
+            statusCode:400,
+            message:error
+        })
+    }
 }
 
 
@@ -2342,4 +2391,5 @@ module.exports = {
     postCreateTender,
     getTypeOfWorkById,
     putTypeOfWorkById,
+    postTypeOfWork
 }
