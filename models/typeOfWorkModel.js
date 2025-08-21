@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const typeOfWork = new mongoose.Schema({
-    typrOfWork:{
-        type:String,
-        unique:true
+     typeOfWork: {
+        type: String,
+        unique: true, 
     },
     createdAt:{
         type: Date,
