@@ -1623,13 +1623,40 @@ const timelinePhase = async (req, res) => {
 
 const getTypeOfWork = async(req,res)=>{
     try{
-        const typeOfWork= await TypeOfWorkModel.find();
+        const { page, limit, search } = req.query;
+        let query = {};
+        if (search) {
+            query = {
+                typeOfWork: { $regex: search, $options: "i" }
+            };
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await TypeOfWorkModel.countDocuments(query);
 
-        res.status(200).json({
-            statusCode:200,
-            data:typeOfWork,
-            message:'Type Of Work has been Fetched'
-        })
+            const typeOfWork = await TypeOfWorkModel.find(query)
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            return res.status(200).json({
+                statusCode: 200,
+                data: typeOfWork,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "Type Of Work has been Fetched with Pagination"
+            });
+            }
+
+        const typeOfWork = await TypeOfWorkModel.find(query);
+            res.status(200).json({
+            statusCode: 200,
+            data: typeOfWork,
+            message: "Type Of Work has been Fetched"
+        });
         
     } catch(error){
         res.status(400).json({
@@ -2198,6 +2225,69 @@ const getReportById = async (req, res) => {
     }
 }
 
+const getTypeOfWorkById = async(req,res)=>{
+    try{
+        const { id } = req.params;
+        
+        const data = await TypeOfWorkModel.findById(id);
+
+        res.status(200).json({
+            statusCode:200,
+            data:data,
+            message:'Data has Been fetched'
+        })
+    } catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:error
+        })
+    }
+}
+
+const putTypeOfWorkById = async(req,res)=>{
+    try{
+        const { id } = req.params;
+        const updateData = req.body;
+        const project = await TypeOfWorkModel.findById(id)
+        if (!project) {
+            return res.status(404).json({
+                statusCode: 404,
+                message: "Type Of Work not found",
+            });
+        }
+        if (updateData.typeOfWork) {
+            const existingProject = await TypeOfWorkModel.findOne({
+                typeOfWork: updateData.typeOfWork, 
+            });
+
+            if (existingProject) {
+                return res.status(401).json({
+                    statusCode: 401,
+                    message: "Type Of Work must be unique. A Type Of Work already exists.",
+                });
+            }
+        }
+
+        await TypeOfWorkModel.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true, runValidators: true } 
+        );
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Type Of Work updated successfully",
+        });
+
+    } catch (error) {
+         res.status(400).json({
+            statusCode: 400,
+            message: error,
+        });
+    }
+
+}
+
 
 module.exports = {
     perseonalDetails,
@@ -2250,4 +2340,6 @@ module.exports = {
     getAllTenderList,
     deleteprojectsById,
     postCreateTender,
+    getTypeOfWorkById,
+    putTypeOfWorkById,
 }
