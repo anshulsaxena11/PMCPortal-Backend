@@ -28,6 +28,7 @@ routes.put('/reportDeleted/:id',authMiddleware,allowRoles('Admin','SubAdmin'),Us
 routes.put('/soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTenderById);
 routes.put('/projects-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteprojectsById);
 routes.put('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.putTypeOfWorkById)
+routes.put('/typeOfWorkDelete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteTypeOfWork)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)

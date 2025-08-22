@@ -1624,10 +1624,10 @@ const timelinePhase = async (req, res) => {
 const getTypeOfWork = async(req,res)=>{
     try{
         const { page, limit, search } = req.query;
-        let query = {};
+         let query = { isDeleted: { $ne: true } };
         if (search) {
             query = {
-                typeOfWork: { $regex: search, $options: "i" }
+                typeOfWork: { $regex: search, $options: "i" },
             };
         }
         if (page && limit) {
@@ -1649,7 +1649,7 @@ const getTypeOfWork = async(req,res)=>{
                 },
                 message: "Type Of Work has been Fetched with Pagination"
             });
-            }
+        }
 
         const typeOfWork = await TypeOfWorkModel.find(query);
             res.status(200).json({
@@ -2337,6 +2337,38 @@ const postTypeOfWork = async(req,res)=>{
     }
 }
 
+const deleteTypeOfWork = async(req,res)=>{
+    try{
+        const {id} = req.params
+        const deleted = await TypeOfWorkModel.findByIdAndUpdate(
+        id, 
+        { isDeleted: true ,
+            isDeletedAt:Date.now(),
+            isDeletedIp:await getClientIp(req),
+            isDeletedId: req.session?.user.id 
+        },
+        { new: true }
+        );
+
+        if (!deleted) {
+        return res.status(400).json({
+            statusCode:400,
+            message: `Type of work does not exist`,
+        });
+        }
+
+        res.status(200).json({
+            statusCode:200,
+            message: "Type Of Work has been deleted successfully",
+        });
+
+    }catch (error){
+        res.status(400).json({
+            statusCode:400,
+            messahe:error
+        })
+    }
+}
 
 module.exports = {
     perseonalDetails,
@@ -2391,5 +2423,6 @@ module.exports = {
     postCreateTender,
     getTypeOfWorkById,
     putTypeOfWorkById,
-    postTypeOfWork
+    postTypeOfWork,
+    deleteTypeOfWork
 }
