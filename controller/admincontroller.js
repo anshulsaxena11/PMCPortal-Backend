@@ -328,8 +328,7 @@ const register = async(req,res) =>{
             <h3>Welcome!</h3>
             <p>Username: <strong>${empdetails.empid} or ${empdetails.email}</strong></p>
             <p>Password: <strong>${plainPassword}</strong></p>
-            <p>This is an <strong>HTML</strong> message.</p>
-            <p>Please <a href="https://pmcportal.stpi.in">pmcportal.stpi.in</a> click here to access PMC Portal</a>.</p>
+            <p>Please click here to access PMC Portal.<a href="https://pmcportal.stpi.in">pmcportal.stpi.in</a></p>
           ` 
         );
     res.status(200).json({
