@@ -2370,6 +2370,42 @@ const deleteTypeOfWork = async(req,res)=>{
     }
 }
 
+const reportNameList = async(req,res) =>{
+    try{
+        const query = req.query.search
+
+        const results = await reportModel.aggregate([
+            {
+                $match: {
+                Name: { $regex: query, $options: 'i' }, 
+                },
+            },
+            {
+                $group: {
+                _id: '$Name', 
+                },
+            },
+            {
+                $project: {
+                _id: 0,
+                Name: '$_id', 
+                },
+            },
+            {
+                $sort: { Name: 1 }, 
+            },
+        ]);
+
+        res.status(200).json(results);
+
+    } catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:error
+        })
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -2424,5 +2460,6 @@ module.exports = {
     getTypeOfWorkById,
     putTypeOfWorkById,
     postTypeOfWork,
-    deleteTypeOfWork
+    deleteTypeOfWork,
+    reportNameList
 }
