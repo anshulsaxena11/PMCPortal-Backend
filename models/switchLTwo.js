@@ -6,7 +6,6 @@ const SwitchLTwoVulnerabilityType = new mongoose.Schema({
     description:String,
     impact:String,
     recommendation:String,
-    vulnarabilityParameter:String,
     references:String,
     criteria:String,
     createdAt:{

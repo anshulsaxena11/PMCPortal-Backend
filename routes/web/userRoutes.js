@@ -62,5 +62,6 @@ routes.get('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),
 routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getTenderById)
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeOfWorkById)
+routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
  
 module.exports = routes 
