@@ -617,6 +617,8 @@ if (req.files && Array.isArray(req.files)) {
         const newReport = new reportModel({
             ...ReportDetails,
             proofOfConcept: parsedProofOfConcept,
+            createdId: req.session?.user.id,
+            createdIp:await getClientIp(req)
         });
 
         await newReport.save();

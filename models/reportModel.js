@@ -31,6 +31,12 @@ const reportSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    createdId:{
+        type:String,
+    },
+    createdIp:{
+        type:String,
+    },
     deletedAt: {
       type: Date,
       default: null,
