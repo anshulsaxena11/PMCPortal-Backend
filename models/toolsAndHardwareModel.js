@@ -38,6 +38,34 @@ const toolsAndHardware = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    createdIp:{
+        type:String,
+    },
+    createdId:{
+        type:String,
+    },
+   isDeleted: { 
+        type: Boolean, 
+        default: false 
+    },
+    updatedAt:{
+        type:Date
+    },
+    updatedIP:{
+        type:String
+    },
+    updatedId:{
+        type:String
+    },
+     isDeletedIp:{
+        type:String
+    },
+    isDeletedId:{
+        type:String
+    },
+    isDeletedAt:{
+        type:Date
+    }
 })
 
 const ToolsAndHardware = mongoose.model("toolsAndHardware",toolsAndHardware);

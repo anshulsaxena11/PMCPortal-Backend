@@ -169,12 +169,15 @@ const ProjectTypeList = async (req,res) => {
                 message:"Scope of work already exist"
             })
         } else{
-            const newProjectTypeList = await projectTypeModel(projectType);
+            const newProjectTypeList = new projectTypeModel({
+                ...projectType,
+                createdIP: await getClientIp(req),
+                createdId: req.session?.user.id,
+            });   
             await newProjectTypeList.save();
             res.status(200).json({
                 statusCode:200,
                 message:"Scope of work has been Updated",
-                data:newProjectTypeList
             })
         }
     } catch(error){
@@ -188,9 +191,39 @@ const ProjectTypeList = async (req,res) => {
 //gettng list for ScopeofWork
 const getProjectTypeList = async(req,res) =>{
     try{
-        const {category} = req.query
+        const {category,page, limit, search} = req.query
+        let query = { isDeleted: { $ne: true } };
+        if (category) {
+            query.category = category;
+        }
+         if (search) {
+            query.$or = [
+                { category: { $regex: search, $options: "i" } },
+                { ProjectTypeName: { $regex: search, $options: "i" } }
+            ];
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await projectTypeModel.countDocuments(query);
+
+            const projecttypeList = await projectTypeModel.find(query)
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            return res.status(200).json({
+                statusCode: 200,
+                data: projecttypeList,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "Scope Of Work has been Fetched with Pagination"
+            });
+        }
         if (!category){
-             const projecttypeList = await projectTypeModel.find().select('_id ProjectTypeName');;
+             const projecttypeList = await projectTypeModel.find({isDeleted: { $ne: true }}).select('_id ProjectTypeName');;
             res.status(200).json({
                 statusCode: 200,
                 message:"",
@@ -198,7 +231,7 @@ const getProjectTypeList = async(req,res) =>{
             })
         }
         else{
-            const projecttypeList = await projectTypeModel.find({category:category}).select('_id ProjectTypeName');;
+            const projecttypeList = await projectTypeModel.find({category:category, isDeleted: { $ne: true }}).select('_id ProjectTypeName');;
             res.status(200).json({
                 statusCode: 200,
                 message:"",
@@ -1294,7 +1327,9 @@ const getStpiEmpListActive = async (req, res) => {
         }else{
             const newtoolsAndHardware = new ToolsAndHardwareMasterMdel({
                 tollsName:payload.tollsName,
-                toolsAndHardwareType:payload.toolsAndHardwareType
+                toolsAndHardwareType:payload.toolsAndHardwareType,
+                createdById:req.session?.user.id ,
+                createdbyIp:await getClientIp(req)
             })
             await newtoolsAndHardware.save();
             res.status(200).json({
@@ -1311,55 +1346,55 @@ const getStpiEmpListActive = async (req, res) => {
   }
 
     const getToolsAndHardware = async (req, res) => {
-  try {
-    let {
-      page = 1,
-      limit = 10,
-      search = " ",
-      toolsAndHardwareType = " ",
-    } = req.query;
+    try {
+        let {
+        page = 1,
+        limit = 10,
+        search = " ",
+        toolsAndHardwareType = " ",
+        } = req.query;
 
-    // ✅ convert to integers
-    page = parseInt(page);
-    limit = parseInt(limit);
+        // ✅ convert to integers
+        page = parseInt(page);
+        limit = parseInt(limit);
 
-    const query = {
-      ...(search.trim()
-        ? {
-            $or: [
-              { tollsName: { $regex: search, $options: "i" } },
-              { toolsAndHardwareType: { $regex: search, $options: "i" } },
-            ],
-          }
-        : {}),
-      ...(toolsAndHardwareType.trim()
-        ? { toolsAndHardwareType: toolsAndHardwareType }
-        : {}),
+        const query = {
+            isDeleted: { $ne: true },
+        ...(search.trim()
+            ? {
+                $or: [
+                { tollsName: { $regex: search, $options: "i" } },
+                { toolsAndHardwareType: { $regex: search, $options: "i" } },
+                ],
+            }
+            : {}),
+        ...(toolsAndHardwareType.trim()
+            ? { toolsAndHardwareType: toolsAndHardwareType }
+            : {}),
+        };
+
+        const totalCount = await ToolsAndHardwareMasterMdel.countDocuments(query);
+        const data = await ToolsAndHardwareMasterMdel.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+        res.status(200).json({
+        statusCode: 200,
+        success: true,
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        data,
+        });
+    } catch (error) {
+        res.status(400).json({
+        statusCode: 400,
+        message: error.message || "Something went wrong",
+        });
+    }
     };
-
-    const totalCount = await ToolsAndHardwareMasterMdel.countDocuments(query);
-    const data = await ToolsAndHardwareMasterMdel.find(query)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      statusCode: 200,
-      success: true,
-      total: totalCount,
-      page,
-      limit,
-      totalPages: Math.ceil(totalCount / limit),
-      data,
-    });
-  } catch (error) {
-    res.status(400).json({
-      statusCode: 400,
-      message: error.message || "Something went wrong",
-    });
-  }
-};
-
 
     const editToolsAndData = async (req, res) => {
         try {
@@ -1380,6 +1415,9 @@ const getStpiEmpListActive = async (req, res) => {
     
             let projectDetails;
             if (isUpdate) {
+                updateData.updatedAt = new Date();
+                updateData.updatedIP = await getClientIp(req),
+                updateData.updatedId= req.session?.user.id,
                 // Perform update
                 projectDetails = await ToolsAndHardwareMasterMdel.findByIdAndUpdate(
                     id,
@@ -1419,6 +1457,8 @@ const getStpiEmpListActive = async (req, res) => {
                 directorates:payload.directorates,
                 purchasedOrder:payload.purchasedOrder,
                 description:payload.description,
+                createdIp: await getClientIp(req),
+                createdId: req.session?.user.id 
             })
             await newtoolsAndHardware.save();
             res.status(200).json({
@@ -1437,6 +1477,7 @@ const getStpiEmpListActive = async (req, res) => {
         try {
             const { page = 1, limit = 10, search=" ",directorates=" " } = req.query;
             const query = {
+                isDeleted: { $ne: true },
             ...(search.trim()
                 ? {
                     $or: [
@@ -1488,6 +1529,9 @@ const getStpiEmpListActive = async (req, res) => {
     
             let projectDetails;
             if (isUpdate) {
+                updateData.updatedAt = new Date();
+                updateData.updatedIP = await getClientIp(req),
+                updateData.updatedId= req.session?.user.id,
                 // Perform update
                 projectDetails = await ToolsAndHardwareModel.findByIdAndUpdate(
                     id,
@@ -2408,6 +2452,171 @@ const reportNameList = async(req,res) =>{
     }
 }
 
+const deleteScopeOfWork = async(req,res) =>{
+     try{
+        const {id} = req.params
+        const deleted = await projectTypeModel.findByIdAndUpdate(
+        id, 
+        { isDeleted: true ,
+            isDeletedAt:Date.now(),
+            isDeletedIp:await getClientIp(req),
+            isDeletedId: req.session?.user.id 
+        },
+        { new: true }
+        );
+
+        if (!deleted) {
+        return res.status(400).json({
+            statusCode:400,
+            message: `Scope of work does not exist`,
+        });
+        }
+
+        res.status(200).json({
+            statusCode:200,
+            message: "Scope Of Work has been deleted successfully",
+        });
+
+    }catch (error){
+        res.status(400).json({
+            statusCode:400,
+            messahe:error
+        })
+    }
+
+}
+
+const getScopeOfWorkById = async(req,res)=>{
+      try{
+        const { id } = req.params;
+        
+        const data = await projectTypeModel.findById(id);
+
+        res.status(200).json({
+            statusCode:200,
+            data:data,
+            message:'Data has Been fetched'
+        })
+    } catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:error
+        })
+    }
+
+}
+
+const updateScopeOfWork = async (req,res)=>{
+    try{
+        const {id} = req.params
+        const updateData = req.body;
+        const scopeOfwork = await projectTypeModel.findById(id)
+        if(!scopeOfwork){
+            return res.status(401).json({
+                statusCode:401,
+                message:'Scope Of Work not found'
+            })
+        }
+        if (updateData.ProjectTypeName) {
+            const exist = await projectTypeModel.findOne({
+                ProjectTypeName: updateData.ProjectTypeName,
+                _id: { $ne: id }, // exclude current id
+            });
+            if (exist) {
+                return res.status(401).json({
+                statusCode: 401,
+                message: "Scope of work with this name already exists",
+            });
+        }
+    }
+    await projectTypeModel.findByIdAndUpdate(
+      id,
+      {
+        ...updateData,
+        updatedIP: await getClientIp(req),
+        updatedId: req.session?.user.id,
+        updatedAt: Date.now(),
+      },
+      { new: true } 
+    );
+    res.status(200).json({
+      statusCode: 200,
+      message: "Scope of work has been updated successfully",
+    });
+    }catch(error){
+        res.status(400).json({
+            statusCode: 400,
+            message: error.message || "Unable to update Scope of Work",
+        });
+    }
+}
+
+const deleteToolsAndHardwareMaster = async(req,res)=>{
+    try{
+        const {id} = req.params
+        const deleted = await ToolsAndHardwareMasterMdel.findByIdAndUpdate(
+        id, 
+        { isDeleted: true ,
+            isDeletedAt:Date.now(),
+            isDeletedIp:await getClientIp(req),
+            isDeletedId: req.session?.user.id 
+        },
+        { new: true }
+        );
+
+        if (!deleted) {
+        return res.status(400).json({
+            statusCode:400,
+            message: `Tool and Hardware does not exist`,
+        });
+        }
+
+        res.status(200).json({
+            statusCode:200,
+            message: "Tool and hardware has been deleted successfully",
+        });
+
+    }catch (error){
+        res.status(400).json({
+            statusCode:400,
+            messahe:error
+        })
+    }
+}
+
+const deleteToolsAndHardware = async(req,res)=>{
+    try{
+        const {id} = req.params
+        const deleted = await ToolsAndHardwareModel.findByIdAndUpdate(
+        id, 
+        { isDeleted: true ,
+            isDeletedAt:Date.now(),
+            isDeletedIp:await getClientIp(req),
+            isDeletedId: req.session?.user.id 
+        },
+        { new: true }
+        );
+
+        if (!deleted) {
+        return res.status(400).json({
+            statusCode:400,
+            message: `Tool and Hardware does not exist`,
+        });
+        }
+
+        res.status(200).json({
+            statusCode:200,
+            message: "Tool and hardware has been deleted successfully",
+        });
+
+    }catch (error){
+        res.status(400).json({
+            statusCode:400,
+            messahe:error
+        })
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -2463,5 +2672,10 @@ module.exports = {
     putTypeOfWorkById,
     postTypeOfWork,
     deleteTypeOfWork,
-    reportNameList
+    reportNameList,
+    deleteScopeOfWork,
+    getScopeOfWorkById,
+    updateScopeOfWork,
+    deleteToolsAndHardwareMaster,
+    deleteToolsAndHardware
 }

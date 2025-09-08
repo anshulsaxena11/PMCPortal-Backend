@@ -14,6 +14,34 @@ const ProjectTypeSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  createdId: {
+    type:String,
+  },
+  createdIP:{
+    type:String,
+  },
+  isDeleted: { 
+      type: Boolean, 
+      default: false 
+  },
+  isDeletedAt:{
+      type: Date,
+  },
+  isDeletedIp:{
+      type:String
+  },
+  isDeletedId:{
+      type:String
+  },
+  updatedAt:{
+    type: Date,
+  },
+  updatedIP:{
+      type:String
+  },
+  updatedId:{
+      type:String
+  },
 })
 
 const ProjectType = mongoose.model("ProjectType",ProjectTypeSchema);

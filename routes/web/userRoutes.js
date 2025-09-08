@@ -29,6 +29,10 @@ routes.put('/soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),User
 routes.put('/projects-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteprojectsById);
 routes.put('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.putTypeOfWorkById)
 routes.put('/typeOfWorkDelete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteTypeOfWork)
+routes.put('/toolsAndHardwareMasterDelete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteToolsAndHardwareMaster)
+routes.put('/toolsAndHardwareDelete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteToolsAndHardware)
+routes.put('/ScopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteScopeOfWork)
+routes.put('/ScopeOfWorkedit/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateScopeOfWork)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
@@ -62,6 +66,7 @@ routes.get('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),
 routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getTenderById)
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeOfWorkById)
+routes.get('/scopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getScopeOfWorkById)
 routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
  
 module.exports = routes 
