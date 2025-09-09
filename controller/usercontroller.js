@@ -2617,6 +2617,41 @@ const deleteToolsAndHardware = async(req,res)=>{
     }
 }
 
+const notification = async (req, res) => {
+  try {
+    const today = new Date();
+    const thirtyDaysLater = new Date();
+    thirtyDaysLater.setDate(today.getDate() + 30);
+
+    const data = await ToolsAndHardwareModel.find({
+      isDeleted: false, 
+      endDate: { $gte: today, $lte: thirtyDaysLater }
+    });
+
+    const result = data.map(item => {
+      const end = new Date(item.endDate);
+      const timeDiff = end - today; 
+      const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); 
+
+      return {
+        ...item._doc,   
+        daysLeft
+      };
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Data fetched successfully",
+      data: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      message: error.message || "Something went wrong"
+    });
+  }
+};
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -2677,5 +2712,6 @@ module.exports = {
     getScopeOfWorkById,
     updateScopeOfWork,
     deleteToolsAndHardwareMaster,
-    deleteToolsAndHardware
+    deleteToolsAndHardware,
+    notification
 }

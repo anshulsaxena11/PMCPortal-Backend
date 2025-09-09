@@ -68,5 +68,6 @@ routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),u
 routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeOfWorkById)
 routes.get('/scopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getScopeOfWorkById)
 routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
+routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.notification)
  
 module.exports = routes 
