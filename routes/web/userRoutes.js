@@ -17,6 +17,7 @@ routes.post('/toolsandHardwareMaster',authMiddleware,allowRoles('Admin'),UserCtr
 routes.post('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.postToolsAndHardware)
 routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.postCreateTender);
 routes.post('/typeOfWork',authMiddleware,allowRoles('Admin'),UserCtrl.postTypeOfWork);
+routes.post('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),upload.single('file'),UserCtrl.postCertificate),
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
@@ -33,6 +34,7 @@ routes.put('/toolsAndHardwareMasterDelete/:id',authMiddleware,allowRoles('Admin'
 routes.put('/toolsAndHardwareDelete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteToolsAndHardware)
 routes.put('/ScopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteScopeOfWork)
 routes.put('/ScopeOfWorkedit/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateScopeOfWork)
+routes.put('/certificate-soft-delete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteCertificate)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
@@ -58,6 +60,9 @@ routes.get('/Alltender',authMiddleware,allowRoles('Admin','SubAdmin','User'),Use
 routes.get('/state',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getState)
 routes.get('/EmpListTF',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpListTaskForce)
 routes.get('/devices-list',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getNetworkDeviceList)
+routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
+routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.notification)
+routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getCertificate)
 //get by id
 routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeById)
 routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetailsById)
@@ -67,7 +72,6 @@ routes.get('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin','U
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeOfWorkById)
 routes.get('/scopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getScopeOfWorkById)
-routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
-routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.notification)
+routes.get('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateById)
  
 module.exports = routes 
