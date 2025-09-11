@@ -35,6 +35,7 @@ routes.put('/toolsAndHardwareDelete/:id',authMiddleware,allowRoles('Admin'),User
 routes.put('/ScopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteScopeOfWork)
 routes.put('/ScopeOfWorkedit/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateScopeOfWork)
 routes.put('/certificate-soft-delete/:id',authMiddleware,allowRoles('Admin'),UserCtrl.deleteCertificate)
+routes.put('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('uploadeCertificate'),UserCtrl.editCertificateDetails)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
