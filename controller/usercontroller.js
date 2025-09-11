@@ -25,6 +25,7 @@ const ProjectPhase = require("../models/ProjectPhase")
 const TypeOfWorkModel = require("../models/typeOfWorkModel")
 const TenderTrackingModel = require("../models/tenderTrackingModel")
 const StateModel = require('../models/stateModel');
+const CertificateDetailsModel = require('../models/certificateModel')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
 const { sendEmail } = require('../Service/email');
@@ -2652,6 +2653,170 @@ const notification = async (req, res) => {
   }
 };
 
+const postCertificate = async(req,res)=>{
+    try {
+        const certificateDetail = req.body;
+        if(!certificateDetail){
+            res.status(400).json({
+                statusCode:400,
+                message :"please enter the require field",
+            })
+        }
+        const file = req.file;        
+        if (file) {
+            const fileExtension = file.mimetype.split('/')[1];
+            if (!['jpeg', 'jpg', 'png', 'pdf'].includes(fileExtension)) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    message: "Invalid file type. Only image or PDF files are allowed.",
+                });
+            }
+
+            let fileFolder = 'uploads/documents'; 
+            if (file.mimetype.startsWith('image/')) {
+                fileFolder = 'uploads/image';
+            } else if (file.mimetype === 'application/pdf') {
+                fileFolder = 'uploads/agreement'; 
+            }
+
+            certificateDetail.uploadeCertificate = `/${fileFolder}/${file.filename}`;
+        }
+        certificateDetail.createdById = req.session?.user.id ;
+        certificateDetail.createdbyIp = await getClientIp(req)
+        const newCertificateDetails = new CertificateDetailsModel(certificateDetail);
+        await newCertificateDetails.save();
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Project Created Successfully",
+        });
+
+    } catch (error) {
+        console.error("Error saving project:", error);
+        res.status(400).json({
+            statusCode: 400,
+            message: "Unable to save Data",
+            data: error.message || error,
+        });
+    }
+
+}
+
+const getCertificate = async(req,res)=>{
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+
+    let query = { isDeleted: false };
+
+    if (search) {
+      query.$or = [
+        { certificateName: { $regex: search, $options: "i" } },
+        { assignedPerson: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const totalCount = await CertificateDetailsModel.countDocuments(query);
+
+    const certificate = await CertificateDetailsModel.find(query)
+      .skip((page - 1) * limit)
+      .limit(limit) 
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      statuscode: 200,
+      success: true,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+      data: certificate,
+    });
+  } catch (error) {
+    res.status(400).json({
+      statusCode: 400,
+      success: false,
+      message: "Server Error",
+      error,
+    });
+  }
+}
+
+const deleteCertificate = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await CertificateDetailsModel.findByIdAndUpdate(
+      id,
+      {
+        $set: { isDeleted: true },
+        $push: {
+          deleted: {
+            deletedAt: Date.now(),
+            deletedByIp: await getClientIp(req),
+            deletedById: req.session?.user.id
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!deleted) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: `Certificate does not exist`,
+      });
+    }
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Certificate has been deleted successfully",
+    });
+  } catch (error) {
+    res.status(400).json({
+      statusCode: 400,
+      message: error.message || error
+    });
+  }
+}
+
+const getCertificateById = async(req,res)=>{
+    try {
+        const { id } = req.params;
+        const project = await CertificateDetailsModel.findById(id)
+
+        if (!project) {
+            return res.status(404).json({
+                statusCode: 404,
+                success: false,
+                message: "Project not found",
+            });
+        }
+
+        // Construct full URL for workOrder (PDF file)
+        const certificateUrl = project.uploadeCertificate
+            ? `${process.env.React_URL}/${project.uploadeCertificate}`
+            : null;
+
+        res.status(200).json({
+            statusCode: 200,
+            success: true,
+            data: {
+                ...project._doc,
+                certificateUrl, 
+            },
+        });
+    } catch (error) {
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -2713,5 +2878,9 @@ module.exports = {
     updateScopeOfWork,
     deleteToolsAndHardwareMaster,
     deleteToolsAndHardware,
-    notification
+    notification,
+    postCertificate,
+    getCertificate,
+    deleteCertificate,
+    getCertificateById
 }
