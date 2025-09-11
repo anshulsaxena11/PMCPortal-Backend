@@ -18,15 +18,17 @@ const certificateDetailsSchema = new mongoose.Schema({
     createdById:{
         type:String
     },
-    updatedAt:{
-        type: Date,
-    },
-    updatedByIp:{
-        type:String
-    },
-    updatedById:{
-        type:String
-    },
+    update:[{
+        updatedAt:{
+            type: Date,
+        },
+        updatedByIp:{
+            type:String
+        },
+        updatedById:{
+            type:String
+        },
+    }],
     isDeleted: { type: Boolean, default: false },
     deleted:[{
         deletedAt: {

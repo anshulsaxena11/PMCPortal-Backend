@@ -2817,6 +2817,51 @@ const getCertificateById = async(req,res)=>{
     }
 }
 
+const editCertificateDetails = async(req,res)=>{
+    try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const file = req.filesPath?.uploadeCertificate?.[0]; 
+    const certificate = await CertificateDetailsModel.findById(id);
+    if (!certificate) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Certificate not found",
+      });
+    }
+
+    if (file) {
+      updateData.uploadeCertificate = file;
+    } else {
+      updateData.uploadeCertificate = certificate.uploadeCertificate;
+    }
+
+    const updateLog={
+        updatedByIp: await getClientIp(req),
+        updatedAt: new Date(),
+        updatedById: req.session?.user.id, 
+    }
+    
+    certificate.update.push(updateLog);
+
+    await CertificateDetailsModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Certificate Updated Successfully",
+    });
+  } catch (error) {
+    console.error("Error updating Certificate:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+      error: error.message || error,
+    });
+  }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -2882,5 +2927,6 @@ module.exports = {
     postCertificate,
     getCertificate,
     deleteCertificate,
-    getCertificateById
+    getCertificateById,
+    editCertificateDetails
 }
