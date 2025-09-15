@@ -26,6 +26,7 @@ const TypeOfWorkModel = require("../models/typeOfWorkModel")
 const TenderTrackingModel = require("../models/tenderTrackingModel")
 const StateModel = require('../models/stateModel');
 const CertificateDetailsModel = require('../models/certificateModel')
+const CertificateMaster = require('../models/certificateMasterModel')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
 const { sendEmail } = require('../Service/email');
@@ -2719,10 +2720,21 @@ const getCertificate = async(req,res)=>{
 
     const totalCount = await CertificateDetailsModel.countDocuments(query);
 
-    const certificate = await CertificateDetailsModel.find(query)
+    const data = await CertificateDetailsModel.find(query).populate('certificateName',"certificateName").populate('assignedPerson','ename')
       .skip((page - 1) * limit)
       .limit(limit) 
       .sort({ createdAt: -1 });
+
+    const certificate = data.map(cert => ({
+        _id: cert._id,
+        certificateName: cert.certificateName?.certificateName || "", // flatten
+        assignedPerson: cert.assignedPerson?.ename || "",
+        empid: cert.assignedPerson?.empid || "",
+        issuedDate: cert.issuedDate,
+        validUpto: cert.validUpto,
+        uploadeCertificate: cert.uploadeCertificate,
+        createdAt: cert.createdAt
+    }));
 
     res.status(200).json({
       statuscode: 200,
@@ -2784,7 +2796,7 @@ const deleteCertificate = async (req, res) => {
 const getCertificateById = async(req,res)=>{
     try {
         const { id } = req.params;
-        const project = await CertificateDetailsModel.findById(id)
+        const project = await CertificateDetailsModel.findById(id).populate('certificateName',"certificateName").populate('assignedPerson','ename')
 
         if (!project) {
             return res.status(404).json({
@@ -2799,13 +2811,21 @@ const getCertificateById = async(req,res)=>{
             ? `${process.env.React_URL}/${project.uploadeCertificate}`
             : null;
 
+        const formatted = {
+            _id: project._id,
+            certificateName: project.certificateName?.certificateName || "",
+            assignedPerson: project.assignedPerson?.ename || "",
+            issuedDate: project.issuedDate,
+            validUpto: project.validUpto,
+            uploadeCertificate: project.uploadeCertificate,
+            certificateUrl,
+            createdAt: project.createdAt,
+        };
+
         res.status(200).json({
             statusCode: 200,
             success: true,
-            data: {
-                ...project._doc,
-                certificateUrl, 
-            },
+            data: formatted,
         });
     } catch (error) {
         res.status(400).json({
@@ -2860,6 +2880,54 @@ const editCertificateDetails = async(req,res)=>{
       error: error.message || error,
     });
   }
+}
+
+const getCertificateMaster = async(req,res)=>{
+     try{
+        const {page, limit, search} = req.query
+        let query = { isDeleted: { $ne: true } };
+         if (search) {
+            query.$or = [
+                 { certificateName: { $regex: search, $options: "i" } },
+            ];
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await CertificateMasterModel.countDocuments(query);
+
+            const projecttypeList = await CertificateMaster.find(query)
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            return res.status(200).json({
+                statusCode: 200,
+                data: projecttypeList,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "Certificate has been Fetched with Pagination"
+            });
+        }
+        else{
+            const projecttypeList = await CertificateMaster.find({isDeleted: { $ne: true }}).select('_id certificateName');;
+            res.status(200).json({
+                statusCode: 200,
+                message:"",
+                data:projecttypeList
+            })
+        }
+
+
+    }catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:"unable to get device list",
+            data: error.message || error
+        })
+    }
 }
 
 module.exports = {
@@ -2928,5 +2996,6 @@ module.exports = {
     getCertificate,
     deleteCertificate,
     getCertificateById,
-    editCertificateDetails
+    editCertificateDetails,
+    getCertificateMaster
 }
