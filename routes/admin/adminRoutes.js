@@ -5,7 +5,7 @@ const authMiddleware = require('../../middleware/authmiddleware');
 const allowRoles = require("../../middleware/allowRole");
 
 routes.post('/syncEmp',authMiddleware,allowRoles('Admin'),adminCtrl.sync);
-routes.get('/empList', authMiddleware, allowRoles('Admin'), adminCtrl.getStpiEmpList);
+routes.get('/empList', authMiddleware, allowRoles('Admin','SubAdmin','User'), adminCtrl.getStpiEmpList);
 routes.put('/empList',authMiddleware,allowRoles('Admin'),adminCtrl.empMapping)
 routes.get('/stpiCentre',authMiddleware,allowRoles('Admin','SubAdmin','User'),adminCtrl.stpiCentre)
 routes.get('/srpiEmpType',authMiddleware,allowRoles('Admin','SubAdmin','User'),adminCtrl.stpiEmpType)
