@@ -62,8 +62,9 @@ routes.get('/state',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtr
 routes.get('/EmpListTF',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpListTaskForce)
 routes.get('/devices-list',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getNetworkDeviceList)
 routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
-routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.notification)
-routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getCertificate)
+routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.notification)
+routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificate)
+routes.get('/certificate-Master',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateMaster)
 //get by id
 routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeById)
 routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetailsById)
