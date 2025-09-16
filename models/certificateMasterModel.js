@@ -1,11 +1,9 @@
 const mongoose = require('mongoose');
 
-const certificateDetailsSchema = new mongoose.Schema({
-    certificateName:{ type: mongoose.Schema.Types.ObjectId, ref: "CertificateMaster" },
-    assignedPerson:{ type: mongoose.Schema.Types.ObjectId, ref: "stpiEmp" },
-    issuedDate:{type:Date, default:null},
-    validUpto:{type:Date, default:null},
-    uploadeCertificate:String,
+const certificateMasterSchema = new mongoose.Schema({
+    certificateName:{
+        type:String,
+    },
     createdAt:{
         type: Date,
         default: Date.now,
@@ -41,6 +39,6 @@ const certificateDetailsSchema = new mongoose.Schema({
     }]
 });
 
-const CertificateDetails = mongoose.model('CertificateDetails', certificateDetailsSchema);
+const CertificateMaster = mongoose.model('CertificateMaster', certificateMasterSchema);
 
-module.exports = CertificateDetails;
+module.exports = CertificateMaster;

@@ -11,7 +11,11 @@ const TenderTrackingSchema = new mongoose.Schema({
     messageStatus:String,
     tenderDocument:String,    
     lastDate:{type:Date, default:null},
-    StatusChangeDate:{type:Date, default:null},
+    comment:[{
+        comments:String,
+        commentedBy:{ type: mongoose.Schema.Types.ObjectId, ref: "Login" },
+        commentedOn:Date,
+    }],
     createdAt:{
         type: Date,
         default: Date.now,
@@ -22,12 +26,17 @@ const TenderTrackingSchema = new mongoose.Schema({
     createdById:{
         type:String
     },
-    updatedByIp:{
-        type:String
-    },
-    updatedById:{
-        type:String
-    },
+    update:[{
+        StatusChangeDate:{
+            type: Date,
+        },
+        updatedByIp:{
+            type:String
+        },
+        updatedById:{
+            type:String
+        },
+    }],
     isDeleted: { type: Boolean, default: false },
     deletedAt: {
       type: Date,

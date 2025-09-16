@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');  // Import mongoose
 const XLSX = require('xlsx');          // Import XLSX for reading the Excel file
-const VulnerabilityType = require('../models/switchLThreeModel');  // Import your model
+const VulnerabilityType = require('../models/certificateMasterModel');  // Import your model
 
 // MongoDB connection function
 const connectToDB = async () => {
@@ -33,12 +33,12 @@ async function importExcelToMongo(filePath) {
     // Map over the data and insert into the database
     for (const item of data) {
       const { 
-      vulnerabilityTypes,severity,description,impact,recommendation,references,criteria
+      certificateName
       } = item;
 
       // Insert the data into MongoDB
       await VulnerabilityType.create({
-       vulnerabilityTypes,severity,description,impact,recommendation,references,criteria
+       certificateName
       });
     }
 
@@ -50,7 +50,7 @@ async function importExcelToMongo(filePath) {
 
 // Main function to execute the seeder
 async function seedDatabase() {
-  const filePath = './switch-L3Vulnerability.xlsx'; // Replace with the actual file path
+  const filePath = './Certificate.xlsx'; // Replace with the actual file path
 
   try {
     // Connect to the database
