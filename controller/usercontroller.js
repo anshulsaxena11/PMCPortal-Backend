@@ -1936,7 +1936,16 @@ const getTenderById = async (req, res) => {
     const { id } = req.params;
 
     // Find tender by ID
-    const tenderData = await TenderTrackingModel.findById(id);
+    const tenderData = await TenderTrackingModel.findById(id)
+        .populate({
+            path: "comment.commentedBy",    
+            select: "empId",                 
+            populate: {
+                path: "empId",                 
+                model: "stpiEmp",
+                select: "ename"                
+            }
+        });
 
     if (!tenderData) {
       return res.status(404).json({
@@ -1952,7 +1961,11 @@ const getTenderById = async (req, res) => {
 
     const responseData = {
       ...tenderData._doc,
-      tenderDocument: filePath, // update path with full URL
+      tenderDocument: filePath, 
+      comment: tenderData.comment.map(c => ({
+    ...c._doc,
+    displayName: c.commentedBy?.empId?.ename || "Admin"
+  }))
     };
 
     return res.status(200).json({
@@ -1990,10 +2003,31 @@ const updateTenderById = async (req, res) => {
     } else {
       updateData.tenderDocument = tender.tenderDocument;
     }
-    updateData.StatusChangeDate = new Date(); 
-    updateData.updatedByIp = await getClientIp(req);
+      const updateLog={
+        updatedByIp: await getClientIp(req),
+        StatusChangeDate: new Date(),
+        updatedById: req.session?.user.id, 
+    }
+    let updateQuery = { $set: updateData };
+    updateQuery.$push = {
+      update: {
+        $each: [updateLog],
+        $position: 0, 
+      },
+    };
+    if(updateData.comments){
+        updateQuery.$push = {
+            comment: {
+            comments: updateData.comments,
+            commentedBy: req.session?.user.id, // adjust based on your auth
+            commentedOn: new Date(),
+        },
+      };
+    }
+    delete updateData.comments; 
+    
     if(updateData.status==="Not Bidding"){updateData.messageStatus = null; }
-    const updatedTender = await TenderTrackingModel.findByIdAndUpdate(id, updateData, {
+    const updatedTender = await TenderTrackingModel.findByIdAndUpdate(id, updateQuery, {
       new: true,
     });
 
