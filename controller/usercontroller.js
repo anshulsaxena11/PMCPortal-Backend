@@ -252,7 +252,8 @@ const getProjectTypeList = async(req,res) =>{
 //use to get scope ofwork in dropdown
 const getProjectName = async(req,res) =>{
     try{
-        const projectName = await projectdetailsModel.find().select('_id projectName');
+        //const projectName = await projectdetailsModel.find().select('_id projectName');
+        const projectName = await projectdetailsModel.find({isDeleted: false }).select('_id projectName');
         res.status(200).json({
             statusCode:200,
             message : "list has been fetched",
@@ -2041,12 +2042,21 @@ const deleteprojectsById = async(req,res) =>{
     try {
     const { id } = req.params;
 
+    const GetprojectPhase = await ProjectPhase.findOne({ ProjectId: id });
+     
+     if (GetprojectPhase){    
+        if (GetprojectPhase.amountStatus=="Ongoing" || GetprojectPhase.amountStatus=="On Hold")  {
+         return res.json({ statuscode: 401, message: 'Ongoing or On Hold project can not be delete' });
+        }
+    }
+
     const deletedProject = await projectdetailsModel.findByIdAndUpdate(
       id,
       { isDeleted: true, deletedAt: new Date(),deletedByIp: await getClientIp(req),deletedById:req.session?.user.id },
       { new: true },
       
     );
+
     if(deletedProject){
         const deletedReports = await reportModel.updateMany(
         { projectName: id }, 
@@ -2063,6 +2073,7 @@ const deleteprojectsById = async(req,res) =>{
 
     return res.json({
       message: 'Project deleted successfully',
+      statuscode:200,
       data: deletedProject ,
     });
 
