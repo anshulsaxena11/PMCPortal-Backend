@@ -2016,7 +2016,7 @@ const updateTenderById = async (req, res) => {
         $position: 0, 
       },
     };
-    if(updateData.comments){
+    if (updateData.comments !== undefined && updateData.comments !== null && updateData.comments.trim() !== "" && updateData.comments !== 'undefined') {
         updateQuery.$push = {
             comment: {
             comments: updateData.comments,
