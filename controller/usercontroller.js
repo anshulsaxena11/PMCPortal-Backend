@@ -1854,10 +1854,10 @@ const getAllTenderList = async (req, res) => {
 
 const getTenderDetails = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "", isDeleted = "false" } = req.query;
+    const { page = 1, limit = 10, search = "", isDeleted = "" } = req.query;
 
     // Convert isDeleted string to boolean
-    const isDeletedBool = isDeleted === "false";
+    const isDeletedBool = isDeleted ;
 
     // Build query
     const query = { 
