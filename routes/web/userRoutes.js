@@ -23,7 +23,7 @@ routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),u
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
 routes.put('/toolsandHardwareMaster/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editToolsAndData)
 routes.put('/toolsAndHardware/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.editToolsAndHardware)
-routes.put('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.timelinePhase)
+routes.put('/timeline/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.fields([{ name: "completetionCertificate", maxCount: 1 },{ name: "clientFeedback", maxCount: 1 },{ name: "anyOtherDocument", maxCount: 1 },]),UserCtrl.timelinePhase)
 routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.updateTenderById)
 routes.put('/reportDeleted/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTrue)
 routes.put('/soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteTenderById);
