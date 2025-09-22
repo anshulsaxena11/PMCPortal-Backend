@@ -383,7 +383,11 @@ const getProjecDetails = async (req, res) => {
             path: "projectType",
             model: "ProjectType",
             select: "ProjectTypeName",
-        });
+        })
+        .populate({
+            path: "phases",
+            model: "ProjectPhase",
+        });;
 
 
         if (!project) {
@@ -398,13 +402,27 @@ const getProjecDetails = async (req, res) => {
         const workOrderUrl = project.workOrder
             ? `${process.env.React_URL}/${project.workOrder}`
             : null;
+        const completetionCertificateUrl = project.phases[0]?.completetionCertificate
+            ? `${process.env.React_URL}${project.phases[0].completetionCertificate}`
+            : null;
+
+        const clientFeedbackUrl = project.phases[0]?.clientFeedback
+            ? `${process.env.React_URL}${project.phases[0].clientFeedback}`
+            : null;
+
+        const anyOtherDocumentUrl = project.phases[0]?.anyOtherDocument
+            ? `${process.env.React_URL}${project.phases[0].anyOtherDocument}`
+            : null;
 
         res.status(200).json({
             statusCode: 200,
             success: true,
             data: {
                 ...project._doc,
-                workOrderUrl, 
+                workOrderUrl,
+                completetionCertificateUrl,
+                clientFeedbackUrl ,
+                anyOtherDocumentUrl
             },
         });
     } catch (error) {
@@ -1606,35 +1624,39 @@ const getStpiEmpListActive = async (req, res) => {
         }
     };
 
-const timelinePhase = async (req, res) => {
-    const { id } = req.params;
-    const updateData = req.body;
-    try {
-        if (!updateData.phase || !Array.isArray(updateData.phase)) {
-            return res.status(400).json({
-                statuscode: 400,
-                message: "Phase data must be a valid array.",
-            });
-        }
+    const timelinePhase = async (req, res) => {
+        const { id } = req.params;
+        const updateData = req.body;
 
-         if (!updateData.invoiceGenerated || !Array.isArray(updateData.invoiceGenerated)) {
-            return res.status(400).json({
-                statuscode: 400,
-                message: "Invoice must be a valid array.",
-            });
-        }
+        try {
 
-        let projectPhase = await ProjectPhase.findOne({ ProjectId: id });
+            // Pick uploaded files (if any)
+            const completetionCertificate = req.files?.completetionCertificate
+                ? '/uploads' + req.files.completetionCertificate[0].path.split('uploads')[1].replace(/\\/g, '/')
+                : null;
 
-        if (!projectPhase) {
-            // Create new document
+            const clientFeedback = req.files?.clientFeedback
+                ? '/uploads' + req.files.clientFeedback[0].path.split('uploads')[1].replace(/\\/g, '/')
+                : null;
+
+            const anyOtherDocument = req.files?.anyOtherDocument
+                ? '/uploads' + req.files.anyOtherDocument[0].path.split('uploads')[1].replace(/\\/g, '/')
+                : null;
+
+            let projectPhase = await ProjectPhase.findOne({ ProjectId: id });
+
+            if (!projectPhase) {
+
             const newProjectPhase = new ProjectPhase({
                 ProjectId: id,
-                amountStatus:updateData.amountStatus,
+                amountStatus: updateData.amountStatus,
                 phase: updateData.phase,
-                invoiceGenerated:updateData.invoiceGenerated,
-                createdByIP:await getClientIp(req),
-                createdById:req.session?.user.id, 
+                invoiceGenerated: updateData.invoiceGenerated,
+                completetionCertificate: completetionCertificate,
+                clientFeedback: clientFeedback,
+                anyOtherDocumenr: anyOtherDocument,
+                createdByIP: await getClientIp(req),
+                createdById: req.session?.user.id,
             });
 
             await newProjectPhase.save();
@@ -1644,13 +1666,21 @@ const timelinePhase = async (req, res) => {
                 message: "Phase data created successfully",
                 data: newProjectPhase,
             });
-        } else {
-            projectPhase.amountStatus=updateData.amountStatus
+            } else {
+
+            projectPhase.amountStatus = updateData.amountStatus;
             projectPhase.phase = updateData.phase;
             projectPhase.invoiceGenerated = updateData.invoiceGenerated;
-            projectPhase.updatedAt=Date.now(),
-            projectPhase.updatedByIp = await getClientIp(req),
-            projectPhase.updatedById = req.session?.user.id, 
+
+            if (completetionCertificate) projectPhase.completetionCertificate = completetionCertificate;
+            if (clientFeedback) projectPhase.clientFeedback = clientFeedback;
+            if (anyOtherDocument) projectPhase.anyOtherDocument = anyOtherDocument;
+
+            projectPhase.update.push({
+                updatedAt: Date.now(),
+                updatedByIp: await getClientIp(req),
+                updatedById: req.session?.user.id,
+            });
 
             await projectPhase.save();
 
@@ -1659,16 +1689,16 @@ const timelinePhase = async (req, res) => {
                 message: "Phase data updated successfully",
                 data: projectPhase,
             });
-        }
-    } catch (error) {
-        console.error("Error in timelinePhase API:", error);
-        return res.status(500).json({
+            }
+        } catch (error) {
+            console.error("Error in timelinePhase API:", error);
+            return res.status(500).json({
             statuscode: 500,
             message: "Internal Server Error",
             error: error.message,
-        });
-    }
-}
+            });
+        }
+    };
 
 const getTypeOfWork = async(req,res)=>{
     try{
