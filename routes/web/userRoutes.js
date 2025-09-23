@@ -36,6 +36,7 @@ routes.put('/ScopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.delete
 routes.put('/ScopeOfWorkedit/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateScopeOfWork)
 routes.put('/certificate-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteCertificate)
 routes.put('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('uploadeCertificate'),UserCtrl.editCertificateDetails)
+routes.put('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateTaskForceMember)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
@@ -75,5 +76,6 @@ routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),u
 routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeOfWorkById)
 routes.get('/scopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getScopeOfWorkById)
 routes.get('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateById)
+routes.get('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTaskForceMemberById)
  
 module.exports = routes 
