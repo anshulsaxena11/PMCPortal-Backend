@@ -33,6 +33,7 @@ const { sendEmail } = require('../Service/email');
 const sharp = require('sharp');
 
 const mongoose = require("mongoose");
+const State = require('../models/stateModel')
 
 //Project Details API
 const perseonalDetails = async (req, res) => {
@@ -1931,13 +1932,55 @@ const getTenderDetails = async (req, res) => {
 
 const getState = async(req,res)=>{
     try{
+        const {page, limit, search} = req.query
+        let query = {};
+        if (search) {
+        const empIds = await stpiEmpDetailsModel.find(
+            { ename: { $regex: search, $options: "i" } },
+            { _id: 1 }
+        ).lean();
+
+        const empIdList = empIds.map((e) => e._id);
+
+        query.$or = [
+            { stateName: { $regex: search, $options: "i" } },
+            { taskForceMember: { $in: empIdList } },
+            { stateCordinator: { $in: empIdList } },
+        ];
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await StateModel.countDocuments(query);
+
+            let stateList = await StateModel.find(query).populate('taskForceMember','ename').populate('stateCordinator','ename')
+                .skip(skip)
+                .limit(parseInt(limit)).lean();
+                
+                stateList = stateList.map((s) => ({
+                    ...s,
+                    taskForceMember: s.taskForceMember?.ename || 'Not Assigned',
+                    stateCordinator: s.stateCordinator?.ename || 'Not Assigned',
+                }));
+            
+            return res.status(200).json({
+                statusCode: 200,
+                data: stateList,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "state has been Fetched with Pagination"
+            });
+        } else{
         const stateList = await StateModel.find()
         res.status(200).json({
             statusCode:200,
             data:stateList,
             message:'Data Has Been Fetched Succesfully'
         })
-
+    }
     }catch(error){
         res.status(400).json({
             statusCode:400,
@@ -3005,6 +3048,76 @@ const getCertificateMaster = async(req,res)=>{
     }
 }
 
+const getTaskForceMemberById = async(req,res) => {
+     try {
+        const { id } = req.params;
+        let state = await StateModel.findById(id).populate('taskForceMember','ename').populate('stateCordinator','ename')
+
+        if (!state) {
+            return res.status(404).json({
+                statusCode: 404,
+                success: false,
+                message: "Task Force Member not found",
+            });
+        }
+        state = {
+            taskForceMember: state.taskForceMember?.ename || "Not Assigned",
+            stateCordinator: state.stateCordinator?.ename || "Not Assigned",
+            stateName: state.stateName,
+            createdAt: state.createdAt,
+        };
+        
+        res.status(200).json({
+            statusCode: 200,
+            success: true,
+            data: state,
+        });
+    } catch (error) {
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
+const updateTaskForceMember = async(req,res)=>{
+    try{
+        const { id } = req.params;
+        const updateData = req.body;
+        const state = await StateModel.findById(id);
+        if (!state) {
+            return res.status(404).json({
+                statusCode: 404,
+                message: "Data not found",
+            });
+        }
+        const updateLog={
+            updatedByIp: await getClientIp(req),
+            updatedAt: new Date(),
+            updatedById: req.session?.user.id, 
+        }
+        state.update.push(updateLog);
+
+        await StateModel.findByIdAndUpdate(id, updateData, {
+            new: true,
+        });
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Task Force Member Updated Successfully",
+        });
+    }catch(error){
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -3072,5 +3185,7 @@ module.exports = {
     deleteCertificate,
     getCertificateById,
     editCertificateDetails,
-    getCertificateMaster
+    getCertificateMaster,
+    getTaskForceMemberById,
+    updateTaskForceMember
 }
