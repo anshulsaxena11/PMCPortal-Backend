@@ -33,6 +33,7 @@ const { sendEmail } = require('../Service/email');
 const sharp = require('sharp');
 
 const mongoose = require("mongoose");
+const State = require('../models/stateModel')
 
 //Project Details API
 const perseonalDetails = async (req, res) => {
@@ -383,7 +384,11 @@ const getProjecDetails = async (req, res) => {
             path: "projectType",
             model: "ProjectType",
             select: "ProjectTypeName",
-        });
+        })
+        .populate({
+            path: "phases",
+            model: "ProjectPhase",
+        });;
 
 
         if (!project) {
@@ -398,13 +403,27 @@ const getProjecDetails = async (req, res) => {
         const workOrderUrl = project.workOrder
             ? `${process.env.React_URL}/${project.workOrder}`
             : null;
+        const completetionCertificateUrl = project.phases[0]?.completetionCertificate
+            ? `${process.env.React_URL}${project.phases[0].completetionCertificate}`
+            : null;
+
+        const clientFeedbackUrl = project.phases[0]?.clientFeedback
+            ? `${process.env.React_URL}${project.phases[0].clientFeedback}`
+            : null;
+
+        const anyOtherDocumentUrl = project.phases[0]?.anyOtherDocument
+            ? `${process.env.React_URL}${project.phases[0].anyOtherDocument}`
+            : null;
 
         res.status(200).json({
             statusCode: 200,
             success: true,
             data: {
                 ...project._doc,
-                workOrderUrl, 
+                workOrderUrl,
+                completetionCertificateUrl,
+                clientFeedbackUrl ,
+                anyOtherDocumentUrl
             },
         });
     } catch (error) {
@@ -1606,35 +1625,39 @@ const getStpiEmpListActive = async (req, res) => {
         }
     };
 
-const timelinePhase = async (req, res) => {
-    const { id } = req.params;
-    const updateData = req.body;
-    try {
-        if (!updateData.phase || !Array.isArray(updateData.phase)) {
-            return res.status(400).json({
-                statuscode: 400,
-                message: "Phase data must be a valid array.",
-            });
-        }
+    const timelinePhase = async (req, res) => {
+        const { id } = req.params;
+        const updateData = req.body;
 
-         if (!updateData.invoiceGenerated || !Array.isArray(updateData.invoiceGenerated)) {
-            return res.status(400).json({
-                statuscode: 400,
-                message: "Invoice must be a valid array.",
-            });
-        }
+        try {
 
-        let projectPhase = await ProjectPhase.findOne({ ProjectId: id });
+            // Pick uploaded files (if any)
+            const completetionCertificate = req.files?.completetionCertificate
+                ? '/uploads' + req.files.completetionCertificate[0].path.split('uploads')[1].replace(/\\/g, '/')
+                : null;
 
-        if (!projectPhase) {
-            // Create new document
+            const clientFeedback = req.files?.clientFeedback
+                ? '/uploads' + req.files.clientFeedback[0].path.split('uploads')[1].replace(/\\/g, '/')
+                : null;
+
+            const anyOtherDocument = req.files?.anyOtherDocument
+                ? '/uploads' + req.files.anyOtherDocument[0].path.split('uploads')[1].replace(/\\/g, '/')
+                : null;
+
+            let projectPhase = await ProjectPhase.findOne({ ProjectId: id });
+
+            if (!projectPhase) {
+
             const newProjectPhase = new ProjectPhase({
                 ProjectId: id,
-                amountStatus:updateData.amountStatus,
+                amountStatus: updateData.amountStatus,
                 phase: updateData.phase,
-                invoiceGenerated:updateData.invoiceGenerated,
-                createdByIP:await getClientIp(req),
-                createdById:req.session?.user.id, 
+                invoiceGenerated: updateData.invoiceGenerated,
+                completetionCertificate: completetionCertificate,
+                clientFeedback: clientFeedback,
+                anyOtherDocumenr: anyOtherDocument,
+                createdByIP: await getClientIp(req),
+                createdById: req.session?.user.id,
             });
 
             await newProjectPhase.save();
@@ -1644,13 +1667,21 @@ const timelinePhase = async (req, res) => {
                 message: "Phase data created successfully",
                 data: newProjectPhase,
             });
-        } else {
-            projectPhase.amountStatus=updateData.amountStatus
+            } else {
+
+            projectPhase.amountStatus = updateData.amountStatus;
             projectPhase.phase = updateData.phase;
             projectPhase.invoiceGenerated = updateData.invoiceGenerated;
-            projectPhase.updatedAt=Date.now(),
-            projectPhase.updatedByIp = await getClientIp(req),
-            projectPhase.updatedById = req.session?.user.id, 
+
+            if (completetionCertificate) projectPhase.completetionCertificate = completetionCertificate;
+            if (clientFeedback) projectPhase.clientFeedback = clientFeedback;
+            if (anyOtherDocument) projectPhase.anyOtherDocument = anyOtherDocument;
+
+            projectPhase.update.push({
+                updatedAt: Date.now(),
+                updatedByIp: await getClientIp(req),
+                updatedById: req.session?.user.id,
+            });
 
             await projectPhase.save();
 
@@ -1659,16 +1690,16 @@ const timelinePhase = async (req, res) => {
                 message: "Phase data updated successfully",
                 data: projectPhase,
             });
-        }
-    } catch (error) {
-        console.error("Error in timelinePhase API:", error);
-        return res.status(500).json({
+            }
+        } catch (error) {
+            console.error("Error in timelinePhase API:", error);
+            return res.status(500).json({
             statuscode: 500,
             message: "Internal Server Error",
             error: error.message,
-        });
-    }
-}
+            });
+        }
+    };
 
 const getTypeOfWork = async(req,res)=>{
     try{
@@ -1854,10 +1885,10 @@ const getAllTenderList = async (req, res) => {
 
 const getTenderDetails = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "", isDeleted = "false" } = req.query;
+    const { page = 1, limit = 10, search = "", isDeleted = "" } = req.query;
 
     // Convert isDeleted string to boolean
-    const isDeletedBool = isDeleted === "false";
+    const isDeletedBool = isDeleted ;
 
     // Build query
     const query = { 
@@ -1901,13 +1932,55 @@ const getTenderDetails = async (req, res) => {
 
 const getState = async(req,res)=>{
     try{
+        const {page, limit, search} = req.query
+        let query = {};
+        if (search) {
+        const empIds = await stpiEmpDetailsModel.find(
+            { ename: { $regex: search, $options: "i" } },
+            { _id: 1 }
+        ).lean();
+
+        const empIdList = empIds.map((e) => e._id);
+
+        query.$or = [
+            { stateName: { $regex: search, $options: "i" } },
+            { taskForceMember: { $in: empIdList } },
+            { stateCordinator: { $in: empIdList } },
+        ];
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await StateModel.countDocuments(query);
+
+            let stateList = await StateModel.find(query).populate('taskForceMember','ename').populate('stateCordinator','ename')
+                .skip(skip)
+                .limit(parseInt(limit)).lean();
+                
+                stateList = stateList.map((s) => ({
+                    ...s,
+                    taskForceMember: s.taskForceMember?.ename || 'Not Assigned',
+                    stateCordinator: s.stateCordinator?.ename || 'Not Assigned',
+                }));
+            
+            return res.status(200).json({
+                statusCode: 200,
+                data: stateList,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "state has been Fetched with Pagination"
+            });
+        } else{
         const stateList = await StateModel.find()
         res.status(200).json({
             statusCode:200,
             data:stateList,
             message:'Data Has Been Fetched Succesfully'
         })
-
+    }
     }catch(error){
         res.status(400).json({
             statusCode:400,
@@ -1919,6 +1992,22 @@ const getState = async(req,res)=>{
 const getEmpListTaskForce = async(req,res)=>{
     try{
         const empList= await stpiEmpDetailsModel.find({taskForceMember:"Yes"})
+        res.status(200).json({
+            statusCode:200,
+            data:empList,
+            messsage:"Data Has Been Fetched"
+        })
+    }catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:error
+        })
+    }
+}
+
+const getEmpListStateCordinator = async(req,res)=>{
+    try{
+        const empList= await stpiEmpDetailsModel.find({StateCordinator:true})
         res.status(200).json({
             statusCode:200,
             data:empList,
@@ -2016,7 +2105,7 @@ const updateTenderById = async (req, res) => {
         $position: 0, 
       },
     };
-    if(updateData.comments){
+    if (updateData.comments !== undefined && updateData.comments !== null && updateData.comments.trim() !== "" && updateData.comments !== 'undefined') {
         updateQuery.$push = {
             comment: {
             comments: updateData.comments,
@@ -3140,6 +3229,76 @@ async function getEmployeeProjects(req, res) {
   }
 }
 
+const getTaskForceMemberById = async(req,res) => {
+     try {
+        const { id } = req.params;
+        let state = await StateModel.findById(id).populate('taskForceMember','ename').populate('stateCordinator','ename')
+
+        if (!state) {
+            return res.status(404).json({
+                statusCode: 404,
+                success: false,
+                message: "Task Force Member not found",
+            });
+        }
+        state = {
+            taskForceMember: state.taskForceMember?.ename || "Not Assigned",
+            stateCordinator: state.stateCordinator?.ename || "Not Assigned",
+            stateName: state.stateName,
+            createdAt: state.createdAt,
+        };
+        
+        res.status(200).json({
+            statusCode: 200,
+            success: true,
+            data: state,
+        });
+    } catch (error) {
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
+const updateTaskForceMember = async(req,res)=>{
+    try{
+        const { id } = req.params;
+        const updateData = req.body;
+        const state = await StateModel.findById(id);
+        if (!state) {
+            return res.status(404).json({
+                statusCode: 404,
+                message: "Data not found",
+            });
+        }
+        const updateLog={
+            updatedByIp: await getClientIp(req),
+            updatedAt: new Date(),
+            updatedById: req.session?.user.id, 
+        }
+        state.update.push(updateLog);
+
+        await StateModel.findByIdAndUpdate(id, updateData, {
+            new: true,
+        });
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Task Force Member Updated Successfully",
+        });
+    }catch(error){
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -3208,6 +3367,9 @@ module.exports = {
     getCertificateById,
     editCertificateDetails,
     getCertificateMaster,
+    getTaskForceMemberById,
+    updateTaskForceMember,
+    getEmpListStateCordinator,
     getEmpDataById,
     getEmployeeProjects,
     getCertificateByUserId

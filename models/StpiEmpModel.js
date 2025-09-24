@@ -29,6 +29,10 @@ const stpiEmp = new mongoose.Schema({
       type:String,
       default:"No",
     },
+    StateCordinator:{
+        type:Boolean,
+        default:false
+    },
     createdAt:{
         type: Date,
         default: Date.now,

@@ -290,6 +290,33 @@ const taskForceMemberStatus = async(req,res)=>{
   }
 }
 
+const updateStateCordinator = async(req,res)=>{
+   try{
+    const payload = req.body
+    const findEmp = await stpiEmpDetailsModel.findById({_id:payload.id})
+
+    if(!findEmp){
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    findEmp.StateCordinator = !findEmp.StateCordinator;
+
+    await findEmp.save();
+
+    res.status(200).json({
+      statusCode:200,
+      message:"state Cordinator  has been mapped"
+    })
+
+  }catch(error){
+    res.status(400).json({
+      statusCode:400,
+      message:error
+    })
+
+  }
+}
+
 const register = async(req,res) =>{
   try{
     const {empId, role} =  req.body;
@@ -794,5 +821,6 @@ module.exports = {
   updateUserDataById,
   checkEmail,
   passwordReset,
-  resetPasswordVerify
+  resetPasswordVerify,
+  updateStateCordinator
 }

@@ -26,6 +26,15 @@ const ProjectPhaseSchema = new mongoose.Schema({
         reportSubmissionEndDate:{type:Date, default:null},
         comments:String,
     }],
+    completetionCertificate:{
+        type:String,
+    },
+    clientFeedback:{
+        type:String,
+    },
+    anyOtherDocument:{
+        type:String,
+    },
     createdAt:{
         type: Date,
         default: Date.now,
@@ -36,16 +45,18 @@ const ProjectPhaseSchema = new mongoose.Schema({
      createdById:{
         type:String
     },
-    updatedAt:{
-        type: Date,
-        default: null,
-    },
-    updatedByIp:{
-        type:String
-    },
-    updatedById:{
-        type:String
-    },
+    update:[{
+        updatedAt:{
+            type: Date,
+            default: null,
+        },
+        updatedByIp:{
+            type:String
+        },
+        updatedById:{
+            type:String
+        },
+    }],
 })
 
 const ProjectPhase = mongoose.model("ProjectPhase",ProjectPhaseSchema);

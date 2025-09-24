@@ -11,6 +11,7 @@ routes.get('/stpiCentre',authMiddleware,allowRoles('Admin','SubAdmin','User'),ad
 routes.get('/srpiEmpType',authMiddleware,allowRoles('Admin','SubAdmin','User'),adminCtrl.stpiEmpType)
 routes.get('/stpiDirectorates',authMiddleware,allowRoles('Admin','SubAdmin','User'),adminCtrl.stpidir)
 routes.put('/taskMember',authMiddleware,allowRoles('Admin'),adminCtrl.taskForceMemberStatus)
+routes.put('/stateCoordinator',authMiddleware,allowRoles('Admin'),adminCtrl.updateStateCordinator)
 routes.post('/register',authMiddleware,allowRoles('Admin'),adminCtrl.register)
 routes.post('/login', adminCtrl.login);
 routes.get('/validate', authMiddleware, (req, res) => {
