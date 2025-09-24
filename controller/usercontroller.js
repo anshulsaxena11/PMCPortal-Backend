@@ -27,6 +27,7 @@ const TenderTrackingModel = require("../models/tenderTrackingModel")
 const StateModel = require('../models/stateModel');
 const CertificateDetailsModel = require('../models/certificateModel')
 const CertificateMaster = require('../models/certificateMasterModel')
+const ClientSectorMasterModel = require('../models/clientSectorMasterModel')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
 const { sendEmail } = require('../Service/email');
@@ -3134,6 +3135,129 @@ const updateTaskForceMember = async(req,res)=>{
     }
 }
 
+const getTypeList = async(req,res)=>{
+    try{
+        const types = await projectdetailsModel.find().select('type')
+        const typeList = [...new Set(types.map(item => item.type))];
+        typeList.sort((a, b) => a.localeCompare(b));
+        res.status(200).json({
+            statusCode:200,
+            message:"Data has been fetched",
+            data:typeList
+        })
+    }catch(error){
+        res.status(400).json({
+            statusCode:400,
+            data:error
+        })
+    }
+}
+
+const postClientSector = async(req,res) => {
+    try{
+        const payload = req.body;
+
+        if(!payload){
+            return res.status(400).json({
+                statusCode:400,
+                message :"please enter the require field",
+            })
+        }
+
+        payload.createdById = req.session?.user.id ;
+        payload.createdbyIp = await getClientIp(req)
+        const newClientSectorDetails = new ClientSectorMasterModel(payload);
+        await newClientSectorDetails.save();
+        res.status(200).json({
+            statusCode:200,
+            message:'Client Sector has been Submitted'
+        })
+    }catch(error){
+        res.status(400).json({
+            statusCode:200,
+            error
+        })
+    }
+}
+
+const getClientSectorMaster = async(req,res)=>{
+     try{
+        const {page, limit, search,type} = req.query
+        let query = { isDeleted: { $ne: true } };
+         if (search) {
+            query.$or = [
+                { clientType: { $regex: search, $options: "i" } },
+                { type: { $regex: search, $options: "i" } },
+            ];
+        }
+        if (type) {
+            query.type = type;
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await ClientSectorMasterModel.countDocuments(query);
+
+            const clientSectorList = await ClientSectorMasterModel.find(query)
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            return res.status(200).json({
+                statusCode: 200,
+                data: clientSectorList,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "Client Sector  has been Fetched with Pagination"
+            });
+        }
+        else{
+            const clientSectorList = await ClientSectorMasterModel.find({isDeleted: { $ne: true }}).select('_id clientType type');;
+            res.status(200).json({
+                statusCode: 200,
+                message:"",
+                data:clientSectorList
+            })
+        }
+
+
+    }catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:"unable to get device list",
+            data: error.message || error
+        })
+    }
+}
+const getClientSectorById = async(req,res) => {
+     try {
+        const { id } = req.params;
+        let clientSectorList = await ClientSectorMasterModel.findById(id)
+
+        if (!clientSectorList) {
+            return res.status(404).json({
+                statusCode: 404,
+                success: false,
+                message: "Client Sector not found",
+            });
+        }  
+        res.status(200).json({
+            statusCode: 200,
+            success: true,
+            data: clientSectorList,
+        });
+    } catch (error) {
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -3204,5 +3328,9 @@ module.exports = {
     getCertificateMaster,
     getTaskForceMemberById,
     updateTaskForceMember,
-    getEmpListStateCordinator
+    getEmpListStateCordinator,
+    getTypeList,
+    postClientSector,
+    getClientSectorMaster,
+    getClientSectorById
 }

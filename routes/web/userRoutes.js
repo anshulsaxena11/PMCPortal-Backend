@@ -18,6 +18,7 @@ routes.post('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin'),Us
 routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.postCreateTender);
 routes.post('/typeOfWork',authMiddleware,allowRoles('Admin'),UserCtrl.postTypeOfWork);
 routes.post('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),upload.single('file'),UserCtrl.postCertificate),
+routes.post('/clientSector',authMiddleware,allowRoles('Admin'),upload.single('file'),UserCtrl.postClientSector),
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
@@ -67,6 +68,8 @@ routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.
 routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.notification)
 routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificate)
 routes.get('/certificate-Master',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateMaster)
+routes.get('/types',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeList)
+routes.get('/client-Sector',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getClientSectorMaster)
 //get by id
 routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeById)
 routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetailsById)
@@ -78,5 +81,6 @@ routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getType
 routes.get('/scopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getScopeOfWorkById)
 routes.get('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateById)
 routes.get('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTaskForceMemberById)
+routes.get('/client-Sector/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getClientSectorById)
  
 module.exports = routes 
