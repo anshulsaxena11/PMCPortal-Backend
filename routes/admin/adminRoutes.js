@@ -20,7 +20,7 @@ routes.get('/validate', authMiddleware, (req, res) => {
 routes.post('/logout',adminCtrl.logout) 
 routes.post('/forget-Password',adminCtrl.forgetPassword)
 routes.get('/user',authMiddleware,allowRoles('Admin'),adminCtrl.getloginDetails)
-routes.get('/register/:id',authMiddleware,allowRoles('Admin'),adminCtrl.getUserDataById)
+routes.get('/register/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),adminCtrl.getUserDataById)
 routes.put('/register/:id',authMiddleware,allowRoles('Admin'),adminCtrl.updateUserDataById)
 routes.post('/check-email',adminCtrl.checkEmail)
 routes.post('/password-Change',adminCtrl.passwordReset)
