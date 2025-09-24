@@ -2992,25 +2992,14 @@ const getCertificateByUserId = async (req, res) => {
                 message: "Certificates not found for this user",
             });
         }
-
-        // Define the base URL for the uploaded files. 
-        // It's best practice to use an environment variable for this.
-        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-
-        // Map through the certificates to create a new array with the full URL.
         const certificatesWithUrl = certificates.map(cert => {
-            // Convert the Mongoose document to a plain JavaScript object.
             const certObject = cert.toObject();
-
-            // Construct the full, absolute URL for the certificate file.
             certObject.certificateUrl = certObject.uploadeCertificate 
-                ? `${baseUrl}${certObject.uploadeCertificate}` 
+                ? `${process.env.React_URL}/${certObject.uploadeCertificate}` 
                 : null;
-
             return certObject;
         });
 
-        // Send the modified array with the full URL in the JSON response.
         res.status(200).json({
             statusCode: 200,
             success: true,
