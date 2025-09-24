@@ -2005,6 +2005,22 @@ const getEmpListTaskForce = async(req,res)=>{
     }
 }
 
+const getEmpListStateCordinator = async(req,res)=>{
+    try{
+        const empList= await stpiEmpDetailsModel.find({StateCordinator:true})
+        res.status(200).json({
+            statusCode:200,
+            data:empList,
+            messsage:"Data Has Been Fetched"
+        })
+    }catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:error
+        })
+    }
+}
+
 const getTenderById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -3187,5 +3203,6 @@ module.exports = {
     editCertificateDetails,
     getCertificateMaster,
     getTaskForceMemberById,
-    updateTaskForceMember
+    updateTaskForceMember,
+    getEmpListStateCordinator
 }

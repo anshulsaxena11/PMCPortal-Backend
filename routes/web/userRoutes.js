@@ -61,6 +61,7 @@ routes.get('/Tender',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCt
 routes.get('/Alltender',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllTenderList)
 routes.get('/state',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getState)
 routes.get('/EmpListTF',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpListTaskForce)
+routes.get('/EmpListSc',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpListStateCordinator)
 routes.get('/devices-list',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getNetworkDeviceList)
 routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
 routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.notification)
