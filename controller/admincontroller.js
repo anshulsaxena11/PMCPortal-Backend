@@ -378,13 +378,15 @@ const login = async (req,res)=>{
       ip: ip,
       date: new Date()
     };
-    let name 
+    let name
+    let empId;
     if(user){
-      const empId = user.empId;
+      empId = user.empId;
       const emp = await stpiEmpDetailsModel.findById({_id:empId}) 
       name = emp.ename
     }else {
-      name = admin.role
+      name = admin.role;
+      empId = admin.empId;
     }
     await account.save({ validateBeforeSave: false });
 
@@ -402,12 +404,12 @@ const login = async (req,res)=>{
     res.status(200).json({
       statusCode: 200,
       message: 'Login successful',
-      user: { name: name, role: account.role }
+      user: { name: name, role: account.role, userId: empId  }
     });
   }catch(error){
     res.status(400).json({
       statusCode:400,
-      message:error
+      message:error.message
     })
   }
 }

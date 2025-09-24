@@ -2882,6 +2882,64 @@ const getCertificateById = async(req,res)=>{
     }
 }
 
+// This code is a Node.js controller function.
+// It assumes you have `CertificateDetailsModel` defined using Mongoose.
+
+const getCertificateByUserId = async (req, res) => {
+    try {
+        const { userid } = req.params;
+
+        // Fetch certificates from the database, populating the required fields.
+        const certificates = await CertificateDetailsModel.find({ assignedPerson: userid })
+            .populate("certificateName", "certificateName")
+            .populate("assignedPerson", "ename");
+
+        // If no certificates are found, return a 404 error.
+        if (!certificates || certificates.length === 0) {
+            return res.status(404).json({
+                statusCode: 404,
+                success: false,
+                message: "Certificates not found for this user",
+            });
+        }
+
+        // Define the base URL for the uploaded files. 
+        // It's best practice to use an environment variable for this.
+        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+
+        // Map through the certificates to create a new array with the full URL.
+        const certificatesWithUrl = certificates.map(cert => {
+            // Convert the Mongoose document to a plain JavaScript object.
+            const certObject = cert.toObject();
+
+            // Construct the full, absolute URL for the certificate file.
+            certObject.certificateUrl = certObject.uploadeCertificate 
+                ? `${baseUrl}${certObject.uploadeCertificate}` 
+                : null;
+
+            return certObject;
+        });
+
+        // Send the modified array with the full URL in the JSON response.
+        res.status(200).json({
+            statusCode: 200,
+            success: true,
+            data: certificatesWithUrl,
+        });
+
+    } catch (error) {
+        // Handle any server-side errors.
+        console.error("Error fetching certificates:", error);
+        res.status(500).json({ // Use 500 for server errors
+            statusCode: 500,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+};
+
+
 const editCertificateDetails = async(req,res)=>{
     try {
     const { id } = req.params;
@@ -2975,6 +3033,113 @@ const getCertificateMaster = async(req,res)=>{
     }
 }
 
+
+const getEmpDataById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const empDetails = await stpiEmpDetailsModel
+      .findById(id)
+      .populate({
+        path: "skills.scopeOfWorkId", // populate inside skills array
+        model: "ProjectType",
+        select: "ProjectTypeName",
+      })
+      .lean();
+
+    if (!empDetails) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Employee not found",
+      });
+    }
+
+    // Map skills to include Rating + ProjectTypeName
+    const skills = empDetails.skills.map(skill => ({
+      _id: skill._id,
+      rating: skill.Rating,
+      ProjectTypeName: skill.scopeOfWorkId?.ProjectTypeName || "N/A",
+    }));
+
+    const enrichedUser = {
+      ...empDetails,
+     ...empDetails,
+        empId: empDetails?.empid,
+        ename: empDetails?.ename,
+        centre: empDetails?.centre,
+        dir: empDetails?.dir,
+        etpe: empDetails?.etpe,
+        edesg: empDetails?.edesg,
+        StatusNoida: empDetails?.StatusNoida,
+        taskForceMember: empDetails?.taskForceMember,
+        skills,
+    };
+
+    return res.status(200).json({
+      statusCode: 200,
+      data: enrichedUser,
+    });
+  } catch (error) {
+    console.error("Error fetching employee data:", error);
+    return res.status(400).json({
+      statusCode: 400,
+      message: error.message || "Something went wrong",
+    });
+  }
+};
+
+async function getEmployeeProjects(req, res) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Invalid employeeId",
+      });
+    }
+   const empObjectId = mongoose.Types.ObjectId.createFromHexString(id);
+    const projects = await projectdetailsModel
+      .find({ resourseMapping: { $in: [empObjectId] } })
+      .select("projectName")
+      .lean();
+
+    if (!projects.length) {
+      return res.status(200).json({
+        statusCode: 200,
+        message: "No projects found for this employee",
+        data: [],
+      });
+    }
+    const projectIds = projects.map((p) => p._id);
+
+    const phases = await ProjectPhase.find({
+      ProjectId: { $in: projectIds },
+    })
+      .select("ProjectId amountStatus")
+      .lean();
+    const result = projects.map((project) => {
+      const projectPhase = phases.find(
+        (p) => String(p.ProjectId) === String(project._id)
+      );
+      return {
+        projectName: project.projectName,
+        amountStatus: projectPhase ? projectPhase.amountStatus : null,
+      };
+    });
+
+    return res.status(200).json({
+      statusCode: 200,
+      data: result,
+    });
+  } catch (err) {
+    console.error("Error fetching employee projects:", err.message);
+    return res.status(500).json({
+      statusCode: 500,
+      message: "Internal server error",
+    });
+  }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -3042,5 +3207,8 @@ module.exports = {
     deleteCertificate,
     getCertificateById,
     editCertificateDetails,
-    getCertificateMaster
+    getCertificateMaster,
+    getEmpDataById,
+    getEmployeeProjects,
+    getCertificateByUserId
 }

@@ -75,5 +75,8 @@ routes.put('/tenderTracking/:id',authMiddleware,allowRoles('Admin','SubAdmin'),u
 routes.get('/typeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeOfWorkById)
 routes.get('/scopeOfWork/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getScopeOfWorkById)
 routes.get('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateById)
+routes.get('/usercertificate/:userid',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateByUserId)
+routes.get('/EmpData/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpDataById)
+routes.get('/EmployeeProjects/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmployeeProjects)
  
 module.exports = routes 
