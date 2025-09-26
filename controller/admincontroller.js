@@ -122,7 +122,7 @@ const sync = async(req,res) =>{
 
 const getStpiEmpList = async (req, res) => {
   try {
-    const { page = "", limit = "", search=" ",centre=" " ,StatusNoida=" ",etpe=" ",dir=" "} = req.query;
+    const { page = "", limit = "", search=" ",centre=" " ,StatusNoida=" ",etpe=" ",dir=" ",taskForceMember="",StateCordinator=""} = req.query;
     const query = {
       ...(search.trim()
         ? {
@@ -136,6 +136,8 @@ const getStpiEmpList = async (req, res) => {
                 ? [
                     {
                       StatusNoida: search.toLowerCase() === "active" ? true : false,
+                      StateCordinator: search.toLowerCase() === "active" ? true : false,
+                      taskForceMember: search.toLowerCase() === "active" ? "Yes" : "No",
                     },
                   ]
                 : []),
@@ -145,6 +147,8 @@ const getStpiEmpList = async (req, res) => {
         ...(centre.trim() ? { centre: centre } : {}),  
         ...(dir.trim() ? { dir: dir } : {}),  
         ...(StatusNoida.trim() ? { StatusNoida: StatusNoida } : {}), 
+        ...(StateCordinator.trim() ? { StateCordinator: StateCordinator } : {}), 
+        ...(taskForceMember.trim() ? { taskForceMember } : {}), 
         ...(etpe.trim() ? { etpe: etpe } : {}),  
     };
 

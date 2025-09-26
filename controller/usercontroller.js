@@ -3418,6 +3418,42 @@ const getClientSectorById = async(req,res) => {
     }
 }
 
+const editClientSector = async(req,res) =>{
+     try{
+        const { id } = req.params;
+        const updateData = req.body;
+        const state = await ClientSectorMasterModel.findById(id);
+        if (!state) {
+            return res.status(404).json({
+                statusCode: 404,
+                message: "Data not found",
+            });
+        }
+        const updateLog={
+            updatedByIp: await getClientIp(req),
+            updatedAt: new Date(),
+            updatedById: req.session?.user.id, 
+        }
+        state.update.push(updateLog);
+
+        await ClientSectorMasterModel.findByIdAndUpdate(id, updateData, {
+            new: true,
+        });
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Client Sector has Been Updated Successfully",
+        });
+    }catch(error){
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -3495,5 +3531,6 @@ module.exports = {
     getTypeList,
     postClientSector,
     getClientSectorMaster,
-    getClientSectorById
+    getClientSectorById,
+    editClientSector
 }
