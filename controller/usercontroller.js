@@ -3116,7 +3116,7 @@ const getCertificateMaster = async(req,res)=>{
 const getEmpDataById = async (req, res) => {
   try {
     const { id } = req.params;
-
+console.log(id);
     const empDetails = await stpiEmpDetailsModel
       .findById(id)
       .populate({
@@ -3125,20 +3125,26 @@ const getEmpDataById = async (req, res) => {
         select: "ProjectTypeName",
       })
       .lean();
-
+console.log(empDetails);
     if (!empDetails) {
       return res.status(404).json({
         statusCode: 404,
         message: "Employee not found",
       });
     }
-
+    
     // Map skills to include Rating + ProjectTypeName
-    const skills = empDetails.skills.map(skill => ({
-      _id: skill._id,
-      rating: skill.Rating,
-      ProjectTypeName: skill.scopeOfWorkId?.ProjectTypeName || "N/A",
-    }));
+    let skills = [];
+
+        if (empDetails?.skills) { 
+        skills = empDetails.skills.map(skill => ({
+            _id: skill._id,
+            rating: skill.Rating,
+            ProjectTypeName: skill.scopeOfWorkId?.ProjectTypeName || "N/A",
+        }));
+        }
+
+
 
     const enrichedUser = {
       ...empDetails,
