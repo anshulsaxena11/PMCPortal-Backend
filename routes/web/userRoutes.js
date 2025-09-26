@@ -38,6 +38,7 @@ routes.put('/ScopeOfWorkedit/:id',authMiddleware,allowRoles('Admin'),UserCtrl.up
 routes.put('/certificate-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteCertificate)
 routes.put('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('uploadeCertificate'),UserCtrl.editCertificateDetails)
 routes.put('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateTaskForceMember)
+routes.put('/client-Sector/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editClientSector)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
