@@ -2757,23 +2757,39 @@ const deleteToolsAndHardware = async(req,res)=>{
 const notification = async (req, res) => {
   try {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); 
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(today.getDate() + 30);
+    thirtyDaysLater.setHours(23, 59, 59, 999); 
 
-    const data = await ToolsAndHardwareModel.find({
-      isDeleted: false, 
-      endDate: { $gte: today, $lte: thirtyDaysLater }
-    });
+    const data = await ToolsAndHardwareModel.find({ isDeleted: false });
 
-    const result = data.map(item => {
-      const end = new Date(item.endDate);
-      const timeDiff = end - today; 
-      const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); 
+    const result = data
+      .map(item => {
+        const end = item.endDate ? new Date(item.endDate) : null;
+        if (!end) return null;
 
-      return {
-        ...item._doc,   
-        daysLeft
-      };
+        end.setHours(0, 0, 0, 0); 
+        const daysLeft = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+        return {
+          ...item._doc,
+          daysLeft,
+          expiryDate: end
+        };
+      })
+      .filter(item => item !== null)
+      .filter(item => {
+        return item.expiryDate < today || (item.expiryDate >= today && item.expiryDate <= thirtyDaysLater);
+      });
+
+    result.sort((a, b) => {
+      const aExpired = a.expiryDate < today;
+      const bExpired = b.expiryDate < today;
+
+      if (!aExpired && bExpired) return -1; 
+      if (aExpired && !bExpired) return 1;  
+      return 0;
     });
 
     res.status(200).json({
@@ -2781,6 +2797,7 @@ const notification = async (req, res) => {
       message: "Data fetched successfully",
       data: result
     });
+
   } catch (error) {
     res.status(500).json({
       statusCode: 500,
