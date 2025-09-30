@@ -18,7 +18,7 @@ routes.post('/toolsAndHardware',authMiddleware,allowRoles('Admin','SubAdmin'),Us
 routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('tenderDocument'),UserCtrl.postCreateTender);
 routes.post('/typeOfWork',authMiddleware,allowRoles('Admin'),UserCtrl.postTypeOfWork);
 routes.post('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),upload.single('file'),UserCtrl.postCertificate),
-routes.post('/clientSector',authMiddleware,allowRoles('Admin'),upload.single('file'),UserCtrl.postClientSector),
+routes.post('/domainSector',authMiddleware,allowRoles('Admin'),upload.single('file'),UserCtrl.postDomainSector),
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
@@ -38,7 +38,7 @@ routes.put('/ScopeOfWorkedit/:id',authMiddleware,allowRoles('Admin'),UserCtrl.up
 routes.put('/certificate-soft-delete/:id',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.deleteCertificate)
 routes.put('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('uploadeCertificate'),UserCtrl.editCertificateDetails)
 routes.put('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateTaskForceMember)
-routes.put('/client-Sector/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editClientSector)
+routes.put('/domain-Sector/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editDomain)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
@@ -70,7 +70,7 @@ routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin','User'),
 routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificate)
 routes.get('/certificate-Master',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateMaster)
 routes.get('/types',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeList)
-routes.get('/client-Sector',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getClientSectorMaster)
+routes.get('/domain-Sector',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getDomainMaster)
 //get by id
 routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeById)
 routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetailsById)
@@ -85,6 +85,6 @@ routes.get('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.ge
 routes.get('/usercertificate/:userid',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateByUserId)
 routes.get('/EmpData/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpDataById)
 routes.get('/EmployeeProjects/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmployeeProjects)
-routes.get('/client-Sector/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getClientSectorById)
+routes.get('/domain-Sector/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getDomainById)
  
 module.exports = routes 

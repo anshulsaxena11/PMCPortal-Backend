@@ -27,7 +27,7 @@ const TenderTrackingModel = require("../models/tenderTrackingModel")
 const StateModel = require('../models/stateModel');
 const CertificateDetailsModel = require('../models/certificateModel')
 const CertificateMaster = require('../models/certificateMasterModel')
-const ClientSectorMasterModel = require('../models/clientSectorMasterModel')
+const DomainMasterModel = require('../models/domainMasterModel')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
 const { sendEmail } = require('../Service/email');
@@ -3330,7 +3330,7 @@ const getTypeList = async(req,res)=>{
     }
 }
 
-const postClientSector = async(req,res) => {
+const postDomainSector = async(req,res) => {
     try{
         const payload = req.body;
 
@@ -3343,11 +3343,11 @@ const postClientSector = async(req,res) => {
 
         payload.createdById = req.session?.user.id ;
         payload.createdbyIp = await getClientIp(req)
-        const newClientSectorDetails = new ClientSectorMasterModel(payload);
-        await newClientSectorDetails.save();
+        const newDomainDetails = new DomainMasterModel(payload);
+        await newDomainDetails.save();
         res.status(200).json({
             statusCode:200,
-            message:'Client Sector has been Submitted'
+            message:'Domain has been Submitted'
         })
     }catch(error){
         res.status(400).json({
@@ -3357,14 +3357,14 @@ const postClientSector = async(req,res) => {
     }
 }
 
-const getClientSectorMaster = async(req,res)=>{
+const getDomainMaster = async(req,res)=>{
      try{
         const {page, limit, search,type} = req.query
         let query = { isDeleted: { $ne: true } };
          if (search) {
             query.$or = [
-                { clientType: { $regex: search, $options: "i" } },
-                { type: { $regex: search, $options: "i" } },
+                { domain: { $regex: search, $options: "i" } },
+                // { type: { $regex: search, $options: "i" } },
             ];
         }
         if (type) {
@@ -3372,30 +3372,30 @@ const getClientSectorMaster = async(req,res)=>{
         }
         if (page && limit) {
             const skip = (parseInt(page) - 1) * parseInt(limit);
-            const total = await ClientSectorMasterModel.countDocuments(query);
+            const total = await DomainMasterModel.countDocuments(query);
 
-            const clientSectorList = await ClientSectorMasterModel.find(query)
+            const domainList = await DomainMasterModel.find(query)
                 .skip(skip)
                 .limit(parseInt(limit));
 
             return res.status(200).json({
                 statusCode: 200,
-                data: clientSectorList,
+                data: domainList,
                 pagination: {
                 total,
                 page: parseInt(page),
                 limit: parseInt(limit),
                 totalPages: Math.ceil(total / parseInt(limit))
                 },
-                message: "Client Sector  has been Fetched with Pagination"
+                message: "Domain  has been Fetched with Pagination"
             });
         }
         else{
-            const clientSectorList = await ClientSectorMasterModel.find({isDeleted: { $ne: true }}).select('_id clientType type');;
+            const domainList = await DomainMasterModel.find({isDeleted: { $ne: true }}).select('_id clientType type');;
             res.status(200).json({
                 statusCode: 200,
                 message:"",
-                data:clientSectorList
+                data:domainList
             })
         }
 
@@ -3408,22 +3408,22 @@ const getClientSectorMaster = async(req,res)=>{
         })
     }
 }
-const getClientSectorById = async(req,res) => {
+const getDomainById = async(req,res) => {
      try {
         const { id } = req.params;
-        let clientSectorList = await ClientSectorMasterModel.findById(id)
+        let domainList = await DomainMasterModel.findById(id)
 
-        if (!clientSectorList) {
+        if (!domainList) {
             return res.status(404).json({
                 statusCode: 404,
                 success: false,
-                message: "Client Sector not found",
+                message: "Domain not found",
             });
         }  
         res.status(200).json({
             statusCode: 200,
             success: true,
-            data: clientSectorList,
+            data: domainList,
         });
     } catch (error) {
         res.status(400).json({
@@ -3435,11 +3435,11 @@ const getClientSectorById = async(req,res) => {
     }
 }
 
-const editClientSector = async(req,res) =>{
+const editDomain = async(req,res) =>{
      try{
         const { id } = req.params;
         const updateData = req.body;
-        const state = await ClientSectorMasterModel.findById(id);
+        const state = await DomainMasterModel.findById(id);
         if (!state) {
             return res.status(404).json({
                 statusCode: 404,
@@ -3453,13 +3453,13 @@ const editClientSector = async(req,res) =>{
         }
         state.update.push(updateLog);
 
-        await ClientSectorMasterModel.findByIdAndUpdate(id, updateData, {
+        await DomainMasterModel.findByIdAndUpdate(id, updateData, {
             new: true,
         });
 
         res.status(200).json({
             statusCode: 200,
-            message: "Client Sector has Been Updated Successfully",
+            message: "Domain has Been Updated Successfully",
         });
     }catch(error){
         res.status(400).json({
@@ -3546,8 +3546,8 @@ module.exports = {
     getEmployeeProjects,
     getCertificateByUserId,
     getTypeList,
-    postClientSector,
-    getClientSectorMaster,
-    getClientSectorById,
-    editClientSector
+    postDomainSector,
+    getDomainMaster,
+    getDomainById,
+    editDomain
 }

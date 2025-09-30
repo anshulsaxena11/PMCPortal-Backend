@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
-const clientSectorMasterSchema = new mongoose.Schema({
-    clientType:{
+const domainMasterSchema = new mongoose.Schema({
+    domain:{
         type:String,
     },
-    type:{
-        type:String,
-    },
+    // type:{
+    //     type:String,
+    // },
     createdAt:{
         type: Date,
         default: Date.now,
@@ -42,6 +42,6 @@ const clientSectorMasterSchema = new mongoose.Schema({
     }]
 });
 
-const ClientSectorMaster = mongoose.model('ClientSectorMaster', clientSectorMasterSchema);
+const DomainMaster = mongoose.model('DomainMaster', domainMasterSchema);
 
-module.exports = ClientSectorMaster;
+module.exports = DomainMaster;
