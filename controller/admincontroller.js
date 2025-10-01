@@ -2,6 +2,7 @@ const axios = require('axios');
 const stpiEmpDetailsModel = require('../models/StpiEmpModel')
 const loginModel = require('../models/loginModel')
 const jwt = require('jsonwebtoken');
+const { Binary } = require("mongodb");
 const { sendEmail } = require('../Service/email');
 const adminModel = require('../models/adminModel.js')
 const getClientIp = require('../utils/getClientip')
@@ -65,7 +66,8 @@ const sync = async(req,res) =>{
                 existing.stat !== item.stat ||
                 existing.edocj !== item.edocj ||
                 existing.dir !== item.dir ||
-                existing.email !== item.email;
+                existing.email !== item.email||
+                existing.photo !== item.photo;
           
               if (needsUpdate) {
                 await stpiEmpDetailsModel.updateOne(
@@ -84,6 +86,7 @@ const sync = async(req,res) =>{
                         email: item.email,
                         edocj: item.edocj,
                         dir: item.dir,
+                        photo:item.photo,
                     }
                   }
                 );
@@ -102,7 +105,8 @@ const sync = async(req,res) =>{
                 stat: item.stat,
                 email: item.email,
                 edocj: item.edocj,
-                dir: item.dir
+                dir: item.dir,
+                photo: item.photo,
               });
             }
           }
@@ -411,13 +415,18 @@ const login = async (req,res)=>{
     };
     let name
     let empId;
+    let photoBase64
     if(user){
       empId = user.empId;
       const emp = await stpiEmpDetailsModel.findById({_id:empId}) 
+      if (emp.photo) {
+        photoBase64 = emp.photo;
+      }
       name = emp.ename
     }else {
       name = admin.role;
       empId = admin.empId;
+      photoBase64 = null;
     }
     await account.save({ validateBeforeSave: false });
 
@@ -429,13 +438,14 @@ const login = async (req,res)=>{
       id: account._id,
       empId: name,
       role: account.role,
+      photo: photoBase64 ,
       token: token 
     };
       
     res.status(200).json({
       statusCode: 200,
       message: 'Login successful',
-      user: { name: name, role: account.role, userId: empId  }
+      user: { name: name, role: account.role, userId: empId, photo: photoBase64 ,  }
     });
   }catch(error){
     res.status(400).json({

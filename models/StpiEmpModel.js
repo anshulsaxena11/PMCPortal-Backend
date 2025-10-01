@@ -17,6 +17,7 @@ const stpiEmp = new mongoose.Schema({
     email:String,
     edocj:String,
     dir:String,
+    photo: String,
     StatusNoida:{
         type:Boolean,
         default:false
