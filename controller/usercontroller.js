@@ -389,7 +389,10 @@ const getProjecDetails = async (req, res) => {
         .populate({
             path: "phases",
             model: "ProjectPhase",
-        });;
+        }).populate(
+            "domain",                 
+            "domain"                
+        );
 
 
         if (!project) {
@@ -416,11 +419,14 @@ const getProjecDetails = async (req, res) => {
             ? `${process.env.React_URL}${project.phases[0].anyOtherDocument}`
             : null;
 
+        const domainValue = project.domain?.domain || null;
+
         res.status(200).json({
             statusCode: 200,
             success: true,
             data: {
                 ...project._doc,
+                domain:domainValue,
                 workOrderUrl,
                 completetionCertificateUrl,
                 clientFeedbackUrl ,
@@ -3391,7 +3397,7 @@ const getDomainMaster = async(req,res)=>{
             });
         }
         else{
-            const domainList = await DomainMasterModel.find({isDeleted: { $ne: true }}).select('_id clientType type');;
+            const domainList = await DomainMasterModel.find({isDeleted: { $ne: true }}).select('_id domain');;
             res.status(200).json({
                 statusCode: 200,
                 message:"",
