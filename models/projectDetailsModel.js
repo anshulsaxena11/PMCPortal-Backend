@@ -12,6 +12,7 @@ const projectDetailsSchema = new mongoose.Schema({
         type:String,
         unique:true,
     },
+    domain:{type: mongoose.Schema.Types.ObjectId, ref: "DomainMaster"},
     startDate:{type:Date, default:null},
     endDate:{type:Date, default:null},
     projectType: [{
