@@ -3098,7 +3098,7 @@ const getCertificateMaster = async(req,res)=>{
         }
         if (page && limit) {
             const skip = (parseInt(page) - 1) * parseInt(limit);
-            const total = await CertificateMasterModel.countDocuments(query);
+            const total = await CertificateMaster.countDocuments(query);
 
             const projecttypeList = await CertificateMaster.find(query)
                 .skip(skip)
@@ -3135,11 +3135,117 @@ const getCertificateMaster = async(req,res)=>{
     }
 }
 
+const getCertificateMasterById = async(req,res) => {
+     try {
+        const { id } = req.params;
+        let certificateView = await CertificateMaster.findById(id)
+
+        if (!certificateView) {
+            return res.status(404).json({
+                statusCode: 404,
+                success: false,
+                message: "Certificate not found",
+            });
+        }  
+        res.status(200).json({
+            statusCode: 200,
+            success: true,
+            data: certificateView,
+        });
+    } catch (error) {
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
+const postCertificateMaster = async(req,res) => {
+    try{
+        const payload = req.body;
+
+        if(!payload){
+            return res.status(400).json({
+                statusCode:400,
+                message :"please enter the require field",
+            })
+        }
+        const existingDomain = await CertificateMaster.findOne({ certificateName: payload.certificateName });
+
+        if (existingDomain) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Certificate already exists",
+            });
+        }
+
+        payload.createdById = req.session?.user.id ;
+        payload.createdbyIp = await getClientIp(req)
+        const newCertificateDetails = new CertificateMaster(payload);
+        await newCertificateDetails.save();
+        res.status(200).json({
+            statusCode:200,
+            message:'Certificate has been Submitted'
+        })
+    }catch(error){
+        res.status(400).json({
+            statusCode:200,
+            error
+        })
+    }
+}
+
+const editCertificate = async(req,res) =>{
+     try{
+        const { id } = req.params;
+        const updateData = req.body;
+        const state = await CertificateMaster.findById(id);
+        if (!state) {
+            return res.status(404).json({
+                statusCode: 404,
+                message: "Data not found",
+            });
+        }
+        const duplicate = await CertificateMaster.findOne({
+            _id: { $ne: id }, 
+            certificateName: updateData.certificateName, 
+        });
+
+        if (duplicate) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Certificate with the same name already exists",
+            });
+        }
+        const updateLog={
+            updatedByIp: await getClientIp(req),
+            updatedAt: new Date(),
+            updatedById: req.session?.user.id, 
+        }
+        state.update.push(updateLog);
+
+        await CertificateMaster.findByIdAndUpdate(id, updateData, {
+            new: true,
+        });
+
+        res.status(200).json({
+            statusCode: 200,
+            message: "Certificate has Been Updated Successfully",
+        });
+    }catch(error){
+        res.status(400).json({
+            statusCode: 400,
+            success: false,
+            message: "Server Error",
+            error: error.message || error,
+        });
+    }
+}
 
 const getEmpDataById = async (req, res) => {
   try {
     const { id } = req.params;
-console.log(id);
     const empDetails = await stpiEmpDetailsModel
       .findById(id)
       .populate({
@@ -3422,6 +3528,7 @@ const getDomainMaster = async(req,res)=>{
         })
     }
 }
+
 const getDomainById = async(req,res) => {
      try {
         const { id } = req.params;
@@ -3449,6 +3556,8 @@ const getDomainById = async(req,res) => {
     }
 }
 
+
+
 const editDomain = async(req,res) =>{
      try{
         const { id } = req.params;
@@ -3458,6 +3567,17 @@ const editDomain = async(req,res) =>{
             return res.status(404).json({
                 statusCode: 404,
                 message: "Data not found",
+            });
+        }
+        const duplicate = await DomainMasterModel.findOne({
+            _id: { $ne: id }, 
+            domain: updateData.domain, 
+        });
+
+        if (duplicate) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Domain with the same name already exists",
             });
         }
         const updateLog={
@@ -3563,5 +3683,8 @@ module.exports = {
     postDomainSector,
     getDomainMaster,
     getDomainById,
-    editDomain
+    editDomain,
+    getCertificateMasterById,
+    postCertificateMaster,
+    editCertificate
 }
