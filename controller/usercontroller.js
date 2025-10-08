@@ -3346,6 +3346,14 @@ const postDomainSector = async(req,res) => {
                 message :"please enter the require field",
             })
         }
+        const existingDomain = await DomainMasterModel.findOne({ domain: payload.domain });
+
+        if (existingDomain) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Domain already exists",
+            });
+        }
 
         payload.createdById = req.session?.user.id ;
         payload.createdbyIp = await getClientIp(req)
