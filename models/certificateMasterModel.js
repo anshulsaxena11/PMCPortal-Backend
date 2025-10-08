@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const certificateMasterSchema = new mongoose.Schema({
     certificateName:{
         type:String,
+        unique:true,
     },
     createdAt:{
         type: Date,
