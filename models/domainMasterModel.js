@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const domainMasterSchema = new mongoose.Schema({
     domain:{
         type:String,
+        unique:true,
     },
     // type:{
     //     type:String,
