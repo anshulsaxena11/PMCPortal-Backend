@@ -9,7 +9,11 @@ const TenderTrackingSchema = new mongoose.Schema({
     status:String,
     message:String,
     messageStatus:String,
-    tenderDocument:String,    
+    tenderDocument:String, 
+    taskforceempid: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "stpiEmp",  
+  },   
     lastDate:{type:Date, default:null},
     comment:[{
         comments:String,

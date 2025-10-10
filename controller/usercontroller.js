@@ -28,6 +28,7 @@ const StateModel = require('../models/stateModel');
 const CertificateDetailsModel = require('../models/certificateModel')
 const CertificateMaster = require('../models/certificateMasterModel')
 const DomainMasterModel = require('../models/domainMasterModel')
+const StpiEmpModel = require('../models/StpiEmpModel')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
 const { sendEmail } = require('../Service/email');
@@ -1864,56 +1865,87 @@ const getVulnabilityListSpecific = async(req,res) =>{
 const getAllTenderList = async (req, res) => {
   try {
     const { isDeleted = false } = req.query;
+    const isDeletedBool = isDeleted === "true";
 
-    // Convert isDeleted string to boolean
-    const isDeletedBool = isDeleted === "false";
+    // Fetch tenders with populated employee
+    let tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
+      .populate({
+        path: "taskforceempid",          // field in TenderTracking
+        model: "stpiEmp",      // must match mongoose.model('stpiemps', StpiEmpSchema)
+        select: "ename dir",    // select required fields
+      });
 
-    // Build query
-    const query = { 
-      isDeleted: isDeleted,
-    };
+    // Flatten the employee object
+    tenders = tenders.map(tender => {
+      if (tender.taskforceempid) {
+        return {
+          ...tender.toObject(),
+          taskforceempid: tender.taskforceempid._id, // replace empid field with ObjectId
+          ename: tender.taskforceempid.ename,
+          dir: tender.taskforceempid.dir,
+        };
+      }
+      return tender.toObject();
+    });
 
-    const projects = await TenderTrackingModel.find(query);
     res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       success: true,
-      data: projects,
-
+      data: tenders,
     });
   } catch (error) {
     res.status(400).json({
       statusCode: 400,
       success: false,
       message: "Server Error",
-      error,
+      error: error.message,
     });
   }
 };
 
+
 const getTenderDetails = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", isDeleted = "" } = req.query;
+    const isDeletedBool = isDeleted === "true";
 
-    // Convert isDeleted string to boolean
-    const isDeletedBool = isDeleted ;
-
-    // Build query
-    const query = { 
-      isDeleted: isDeletedBool,
-      ...(search && {
-        $or: [
-          { tenderName: { $regex: search, $options: "i" } },
-          { organizationName: { $regex: search, $options: "i" } },
-          { taskForce: { $regex: search, $options: "i" } },
-        ]
+    // Fetch tenders with populated employee details
+    let tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
+      .populate({
+        path: "taskforceempid",   // field in TenderTrackingModel
+        model: "stpiEmp",         // exact mongoose model name
+        select: "ename dir",      // fetch employee name + dir
       })
-    };
+      .sort({ createdAt: -1 })
+      .lean(); // plain JS objects
 
-    const totalCount = await TenderTrackingModel.countDocuments(query);
-    const projects = await TenderTrackingModel.find(query)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+    // Map to required format
+    const tendersMapped = tenders.map(t => ({
+      ...t,
+      taskforceempid: t.taskforceempid?._id || null,
+      ename: t.taskforceempid?.ename || null,
+      dir: t.taskforceempid?.dir || null
+    }));
+
+    // Apply search
+    let filteredTenders = tendersMapped;
+    if (search) {
+      const regex = new RegExp(search, "i");
+      filteredTenders = tendersMapped.filter(
+        t =>
+          regex.test(t.tenderName || "") ||
+          regex.test(t.organizationName || "") ||
+          (t.ename && regex.test(t.ename))
+      );
+    }
+
+    const totalCount = filteredTenders.length;
+
+    // Pagination
+    const paginatedTenders = filteredTenders.slice(
+      (page - 1) * parseInt(limit),
+      page * parseInt(limit)
+    );
 
     res.status(200).json({
       statuscode: 200,
@@ -1922,10 +1954,11 @@ const getTenderDetails = async (req, res) => {
       page: parseInt(page),
       limit: parseInt(limit),
       totalPages: Math.ceil(totalCount / limit),
-      data: projects,
-
+      data: paginatedTenders
     });
+
   } catch (error) {
+    console.error(error);
     res.status(400).json({
       statusCode: 400,
       success: false,
@@ -1934,6 +1967,7 @@ const getTenderDetails = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -2042,7 +2076,7 @@ const getTenderById = async (req, res) => {
                 model: "stpiEmp",
                 select: "ename"                
             }
-        });
+        }).populate('taskforceempid','ename');
 
     if (!tenderData) {
       return res.status(404).json({
@@ -2050,6 +2084,8 @@ const getTenderById = async (req, res) => {
         message: "Tender data does not exist",
       });
     }
+    const taskforceempid = tenderData?.taskforceempid?.ename;
+    const taskForceemp = tenderData?.taskforceempid?._id
 
     // Prepend full URL for tenderDocument if exists
     const filePath = tenderData.tenderDocument
@@ -2059,6 +2095,8 @@ const getTenderById = async (req, res) => {
     const responseData = {
       ...tenderData._doc,
       tenderDocument: filePath, 
+      taskforceempid:taskforceempid,
+      taskForceemp,
       comment: tenderData.comment.map(c => ({
     ...c._doc,
     displayName: c.commentedBy?.empId?.ename || "Admin"
@@ -2364,7 +2402,7 @@ const getReportById = async (req, res) => {
             payload.tenderDocument = `/${fileFolder}/${file.filename}`;
         }
         const parsedTaskForce = JSON.parse(payload.taskForce);
-        payload.taskForce = parsedTaskForce.name;
+        payload.taskforceempid = parsedTaskForce.id;
         payload.createdById = req.session?.user.id ;
         payload.createdbyIp = await getClientIp(req)
         const empdetails = await stpiEmpDetailsModel.findById({_id:parsedTaskForce.id})
