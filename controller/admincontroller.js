@@ -205,7 +205,11 @@ const empMapping = async(req,res) => {
 
 const stpiCentre = async(req,res) => {
   try {
-    const centres = await stpiEmpDetailsModel.distinct('centre');
+    const {dir}=req.query;
+    const query = {};
+    if (dir) query.dir = dir;
+
+    const centres = await stpiEmpDetailsModel.distinct('centre',query);
     const sortedCentres = centres
       .filter(Boolean)  
       .sort((a, b) => a.localeCompare(b));
