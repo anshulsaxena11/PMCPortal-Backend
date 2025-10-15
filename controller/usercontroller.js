@@ -2109,7 +2109,11 @@ const getTenderById = async (req, res) => {
                 model: "stpiEmp",
                 select: "ename"                
             }
-        }).populate('taskforceempid','ename');
+        }).populate('taskforceempid','ename').populate({
+            path:"state",
+            model:"state",
+            select:"stateName"
+        });
 
     if (!tenderData) {
       return res.status(404).json({
@@ -2119,6 +2123,8 @@ const getTenderById = async (req, res) => {
     }
     const taskforceempid = tenderData?.taskforceempid?.ename;
     const taskForceemp = tenderData?.taskforceempid?._id
+    const stateName = tenderData?.state?.stateName
+    const stateId = tenderData?.state?._id
 
     const filePath = tenderData.tenderDocument
       ? `${process.env.React_URL}/${tenderData.tenderDocument}`
@@ -2129,6 +2135,8 @@ const getTenderById = async (req, res) => {
       tenderDocument: filePath, 
       taskforceempid:taskforceempid,
       taskForceemp,
+      stateName,
+      state:stateId,
       comment: tenderData.comment.map(c => ({
     ...c._doc,
     displayName: c.commentedBy?.empId?.ename || "Admin"
@@ -2163,6 +2171,9 @@ const updateTenderById = async (req, res) => {
         statusCode: 404,
         message: "Tender not found",
       });
+    }
+    if (updateData.state && typeof updateData.state === "string") {
+      updateData.state = new mongoose.Types.ObjectId(updateData.state);
     }
 
     if (file) {
