@@ -1861,39 +1861,49 @@ const getVulnabilityListSpecific = async(req,res) =>{
 //   }
 // };
 
-// getting Tender List API
 const getAllTenderList = async (req, res) => {
   try {
     const { isDeleted = false } = req.query;
     const isDeletedBool = isDeleted === "true";
 
-    // Fetch tenders with populated employee
-    let tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
+    const tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
       .populate({
-        path: "taskforceempid",          // field in TenderTracking
-        model: "stpiEmp",      // must match mongoose.model('stpiemps', StpiEmpSchema)
-        select: "ename dir",    // select required fields
-      });
+        path: "taskforceempid",
+        model: "stpiEmp",
+        select: "ename",
+      })
+      .populate({
+        path: "state",
+        model: "state",
+        select: "stateName",
+      })
+      .lean(); 
+    const directorates = await directrateModel.find().select("stateId directrate").lean();
 
-    // Flatten the employee object
-    tenders = tenders.map(tender => {
-      if (tender.taskforceempid) {
-        return {
-          ...tender.toObject(),
-          taskforceempid: tender.taskforceempid._id, // replace empid field with ObjectId
-          ename: tender.taskforceempid.ename,
-          dir: tender.taskforceempid.dir,
-        };
-      }
-      return tender.toObject();
+    const tendersMapped = tenders.map((tender) => {
+      const tenderStateId = tender?.state?._id?.toString(); 
+
+      const matchedDir = directorates.find(
+        (dir) => dir.stateId?.toString() === tenderStateId
+      );
+
+      return {
+        ...tender,
+        taskforceempid: tender.taskforceempid?._id || null,
+        ename: tender.taskforceempid?.ename || "N/A",
+        stateName: tender.state?.stateName || "N/A",
+        directrate: matchedDir?.directrate || "Not Assigned",
+      };
     });
 
     res.status(200).json({
       statusCode: 200,
       success: true,
-      data: tenders,
+      total: tendersMapped.length,
+      data: tendersMapped,
     });
   } catch (error) {
+    console.error("Error in getAllTenderList:", error);
     res.status(400).json({
       statusCode: 400,
       success: false,
@@ -1906,54 +1916,81 @@ const getAllTenderList = async (req, res) => {
 
 const getTenderDetails = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "", isDeleted = "" } = req.query;
+
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = "", 
+      isDeleted = "",
+      directorate = "" 
+    } = req.query;
+
+    const pageInt = parseInt(page);
+    const limitInt = parseInt(limit);
     const isDeletedBool = isDeleted === "true";
 
-    // Fetch tenders with populated employee details
     let tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
       .populate({
-        path: "taskforceempid",   // field in TenderTrackingModel
-        model: "stpiEmp",         // exact mongoose model name
-        select: "ename dir",      // fetch employee name + dir
+        path: "taskforceempid", 
+        model: "stpiEmp",
+        select: "ename", 
+      })
+      .populate({
+        path: "state",
+        model: "state", 
+        select: "stateName"
       })
       .sort({ createdAt: -1 })
-      .lean(); // plain JS objects
+      .lean(); 
 
-    // Map to required format
-    const tendersMapped = tenders.map(t => ({
-      ...t,
-      taskforceempid: t.taskforceempid?._id || null,
-      ename: t.taskforceempid?.ename || null,
-      dir: t.taskforceempid?.dir || null
-    }));
+    const directorates = await directrateModel.find().select("stateId directrate").lean();
 
-    // Apply search
+    const tendersMapped = tenders.map(t => {
+      const stateId = t.state?._id?.toString();
+      const dirObj = directorates.find(d => d.stateId?.toString() === stateId);
+
+      return {
+        ...t,
+        taskforceempid: t.taskforceempid?._id || null,
+        ename: t.taskforceempid?.ename || null,
+        stateName: t.state?.stateName || null,
+        directorateName: dirObj?.directrate || null,
+      };
+    });
+
     let filteredTenders = tendersMapped;
+    if (directorate && directorate.toLowerCase() !== "all") {
+      filteredTenders = filteredTenders.filter(
+        t => t.directorateName === directorate
+      );
+    }
+
     if (search) {
       const regex = new RegExp(search, "i");
-      filteredTenders = tendersMapped.filter(
+      filteredTenders = filteredTenders.filter(
         t =>
           regex.test(t.tenderName || "") ||
           regex.test(t.organizationName || "") ||
-          (t.ename && regex.test(t.ename))
+          (t.ename && regex.test(t.ename)) ||
+          (t.stateName && regex.test(t.stateName)) ||
+          (t.directorateName && regex.test(t.directorateName))
       );
     }
 
     const totalCount = filteredTenders.length;
 
-    // Pagination
     const paginatedTenders = filteredTenders.slice(
-      (page - 1) * parseInt(limit),
-      page * parseInt(limit)
+      (pageInt - 1) * limitInt, 
+      pageInt * limitInt        
     );
 
     res.status(200).json({
       statuscode: 200,
       success: true,
       total: totalCount,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(totalCount / limit),
+      page: pageInt,
+      limit: limitInt,
+      totalPages: Math.ceil(totalCount / limitInt),
       data: paginatedTenders
     });
 
@@ -1967,9 +2004,6 @@ const getTenderDetails = async (req, res) => {
     });
   }
 };
-
-
-
 
 const getState = async(req,res)=>{
     try{
@@ -2066,7 +2100,6 @@ const getTenderById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find tender by ID
     const tenderData = await TenderTrackingModel.findById(id)
         .populate({
             path: "comment.commentedBy",    
@@ -2087,7 +2120,6 @@ const getTenderById = async (req, res) => {
     const taskforceempid = tenderData?.taskforceempid?.ename;
     const taskForceemp = tenderData?.taskforceempid?._id
 
-    // Prepend full URL for tenderDocument if exists
     const filePath = tenderData.tenderDocument
       ? `${process.env.React_URL}/${tenderData.tenderDocument}`
       : null;
@@ -2154,7 +2186,7 @@ const updateTenderById = async (req, res) => {
         updateQuery.$push = {
             comment: {
             comments: updateData.comments,
-            commentedBy: req.session?.user.id, // adjust based on your auth
+            commentedBy: req.session?.user.id,
             commentedOn: new Date(),
         },
       };
@@ -2324,7 +2356,6 @@ const getReportById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Fetch the report by ID
         const report = await reportModel.findById(id).lean();
 
         if (!report) {
@@ -2410,9 +2441,9 @@ const getReportById = async (req, res) => {
         await newPersonalDetails.save();
         const formattedLastDate = new Date(payload.lastDate).toLocaleDateString('en-GB');
         await sendEmail(
-        empdetails.email, // to
-        `Tender Allotment Notification – ${payload.tenderName}`, // subject
-        '', // plain text (optional, or you can add a summary string)
+        empdetails.email,
+        `Tender Allotment Notification – ${payload.tenderName}`, 
+        '', 
         `
             <p>Dear <strong>${parsedTaskForce.name}</strong>,</p>
 
@@ -2701,7 +2732,7 @@ const updateScopeOfWork = async (req,res)=>{
         if (updateData.ProjectTypeName) {
             const exist = await projectTypeModel.findOne({
                 ProjectTypeName: updateData.ProjectTypeName,
-                _id: { $ne: id }, // exclude current id
+                _id: { $ne: id }, 
             });
             if (exist) {
                 return res.status(401).json({
@@ -3002,7 +3033,6 @@ const getCertificateById = async(req,res)=>{
             });
         }
 
-        // Construct full URL for workOrder (PDF file)
         const certificateUrl = project.uploadeCertificate
             ? `${process.env.React_URL}/${project.uploadeCertificate}`
             : null;
@@ -3033,19 +3063,15 @@ const getCertificateById = async(req,res)=>{
     }
 }
 
-// This code is a Node.js controller function.
-// It assumes you have `CertificateDetailsModel` defined using Mongoose.
 
 const getCertificateByUserId = async (req, res) => {
     try {
         const { userid } = req.params;
 
-        // Fetch certificates from the database, populating the required fields.
         const certificates = await CertificateDetailsModel.find({ assignedPerson: userid })
             .populate("certificateName", "certificateName")
             .populate("assignedPerson", "ename");
 
-        // If no certificates are found, return a 404 error.
         if (!certificates || certificates.length === 0) {
             return res.status(404).json({
                 statusCode: 404,
@@ -3068,9 +3094,8 @@ const getCertificateByUserId = async (req, res) => {
         });
 
     } catch (error) {
-        // Handle any server-side errors.
         console.error("Error fetching certificates:", error);
-        res.status(500).json({ // Use 500 for server errors
+        res.status(500).json({ 
             statusCode: 500,
             success: false,
             message: "Server Error",
@@ -3181,7 +3206,7 @@ console.log(id);
     const empDetails = await stpiEmpDetailsModel
       .findById(id)
       .populate({
-        path: "skills.scopeOfWorkId", // populate inside skills array
+        path: "skills.scopeOfWorkId", 
         model: "ProjectType",
         select: "ProjectTypeName",
       })
@@ -3193,8 +3218,7 @@ console.log(empDetails);
         message: "Employee not found",
       });
     }
-    
-    // Map skills to include Rating + ProjectTypeName
+
     let skills = [];
 
         if (empDetails?.skills) { 
@@ -3204,8 +3228,6 @@ console.log(empDetails);
             ProjectTypeName: skill.scopeOfWorkId?.ProjectTypeName || "N/A",
         }));
         }
-
-
 
     const enrichedUser = {
       ...empDetails,
@@ -3408,7 +3430,6 @@ const getDomainMaster = async(req,res)=>{
          if (search) {
             query.$or = [
                 { domain: { $regex: search, $options: "i" } },
-                // { type: { $regex: search, $options: "i" } },
             ];
         }
         if (type) {
