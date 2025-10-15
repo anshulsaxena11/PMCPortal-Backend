@@ -19,6 +19,7 @@ routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upl
 routes.post('/typeOfWork',authMiddleware,allowRoles('Admin'),UserCtrl.postTypeOfWork);
 routes.post('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),upload.single('file'),UserCtrl.postCertificate),
 routes.post('/domainSector',authMiddleware,allowRoles('Admin'),upload.single('file'),UserCtrl.postDomainSector),
+routes.post('/certificate-Master',authMiddleware,allowRoles('Admin'),UserCtrl.postCertificateMaster)
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
@@ -39,6 +40,7 @@ routes.put('/certificate-soft-delete/:id',authMiddleware,allowRoles('Admin','Sub
 routes.put('/certificate/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('uploadeCertificate'),UserCtrl.editCertificateDetails)
 routes.put('/taskForceMember/:id',authMiddleware,allowRoles('Admin'),UserCtrl.updateTaskForceMember)
 routes.put('/domain-Sector/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editDomain)
+routes.put('/certificate-Master/:id',authMiddleware,allowRoles('Admin'),UserCtrl.editCertificate)
 //get
 routes.get('/deviceList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getdeviceList)
 routes.get('/ProjectTypeList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeList)
@@ -86,5 +88,6 @@ routes.get('/usercertificate/:userid',authMiddleware,allowRoles('Admin','SubAdmi
 routes.get('/EmpData/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmpDataById)
 routes.get('/EmployeeProjects/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getEmployeeProjects)
 routes.get('/domain-Sector/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getDomainById)
+routes.get('/certificate-Master/:id',authMiddleware,allowRoles('Admin'),UserCtrl.getCertificateMasterById)
  
 module.exports = routes 
