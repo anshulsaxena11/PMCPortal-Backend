@@ -4,7 +4,6 @@ const TenderTrackingSchema = new mongoose.Schema({
     tenderName:{ type: String, unique: true },
     organizationName:String,
     state:String,
-    taskForce:String,
     valueINR:String,
     status:String,
     message:String,
