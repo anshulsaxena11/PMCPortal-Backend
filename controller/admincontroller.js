@@ -563,6 +563,7 @@ const getloginDetails = async (req, res) => {
           etpe: empDetails?.etpe,
           StatusNoida: empDetails?.StatusNoida,
           taskForceMember: empDetails?.taskForceMember,
+          StateCordinator: empDetails?.StateCordinator,
         };
       })
     );
