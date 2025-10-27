@@ -47,6 +47,16 @@ const perseonalDetails = async (req, res) => {
                 message :"please enter the require field",
             })
         }
+        if (projectDetail.projectValueYearly && typeof projectDetail.projectValueYearly === 'string') {
+            try {
+                projectDetail.projectValueYearly = JSON.parse(projectDetail.projectValueYearly);
+            } catch (err) {
+                return res.status(400).json({
+                statusCode: 400,
+                message: "Invalid projectValueYearly format",
+                });
+            }
+        }
         const existingWorkOrder = await projectdetailsModel.findOne({ workOrderNo: projectDetail.workOrderNo });
         if (existingWorkOrder) {
             return res.status(400).json({
