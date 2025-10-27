@@ -431,13 +431,15 @@ const getProjecDetails = async (req, res) => {
             : null;
 
         const domainValue = project.domain?.domain || null;
+        const populatedDomain = project.domain?._id ;
 
         res.status(200).json({
             statusCode: 200,
             success: true,
             data: {
                 ...project._doc,
-                domain:domainValue,
+                domain:populatedDomain,
+                domainValue,
                 workOrderUrl,
                 completetionCertificateUrl,
                 clientFeedbackUrl ,
@@ -462,8 +464,7 @@ const editProjectDetails = async (req, res) => {
         const updateData = req.body;
         const file = req.file;
 
-
-        const project = await projectdetailsModel.findById(id)
+        const project = await projectdetailsModel.findById(id);
         if (!project) {
             return res.status(404).json({
                 statusCode: 404,
@@ -471,11 +472,27 @@ const editProjectDetails = async (req, res) => {
             });
         }
 
+        if (updateData.projectValueYearly) {
+            try {
+                if (typeof updateData.projectValueYearly === "string") {
+                    updateData.projectValueYearly = JSON.parse(updateData.projectValueYearly);
+                }
+            } catch (err) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    message: "Invalid format for projectValueYearly",
+                });
+            }
+        }
+
+        if (!Array.isArray(updateData.projectValueYearly) || updateData.projectValueYearly.length === 0) {
+            updateData.projectValueYearly = [];
+        }
 
         if (updateData.workOrderNo) {
             const existingProject = await projectdetailsModel.findOne({
                 workOrderNo: updateData.workOrderNo,
-                _id: { $ne: id }, 
+                _id: { $ne: id },
             });
 
             if (existingProject) {
@@ -489,7 +506,7 @@ const editProjectDetails = async (req, res) => {
         if (updateData.projectName) {
             const existingProject = await projectdetailsModel.findOne({
                 projectName: updateData.projectName,
-                _id: { $ne: id }, 
+                _id: { $ne: id },
             });
 
             if (existingProject) {
@@ -499,7 +516,6 @@ const editProjectDetails = async (req, res) => {
                 });
             }
         }
-
 
         let projectTypeNames = [];
         if (updateData.projectType) {
@@ -519,7 +535,7 @@ const editProjectDetails = async (req, res) => {
 
             const validProjectTypes = await projectTypeModel.find(
                 { _id: { $in: updateData.projectType } },
-                { _id: 1, projectTypeName: 1 } // Only fetching names
+                { _id: 1, projectTypeName: 1 }
             );
 
             if (validProjectTypes.length !== updateData.projectType.length) {
@@ -531,33 +547,37 @@ const editProjectDetails = async (req, res) => {
 
             projectTypeNames = validProjectTypes.map((type) => type.projectTypeName);
         }
+
+
         if (file) {
             const relativePath = file.path.split("uploads")[1];
             updateData.workOrder = `/uploads${relativePath.replace(/\\/g, "/")}`;
         } else {
-            updateData.workOrder = project.workOrder; 
+            updateData.workOrder = project.workOrder;
         }
+
         updateData.updatedById = req.session?.user?.id || "system";
         updateData.updatedByIp = await getClientIp(req);
         updateData.updatedAt = new Date();
+
+
         const updatedProject = await projectdetailsModel.findByIdAndUpdate(id, updateData, {
             new: true,
         }).populate({
             path: "projectType",
             model: "ProjectType",
             select: "ProjectTypeName",
-        });;
+        });
 
         const workOrderUrl = updatedProject.workOrder
-        
-        ? `${process.env.React_URL}/${updatedProject.workOrder}`
-        : null;
+            ? `${process.env.React_URL}/${updatedProject.workOrder}`
+            : null;
 
         res.status(200).json({
             statusCode: 200,
             message: "Project Updated Successfully",
             projectDetails: updatedProject,
-            projectTypeNames, 
+            projectTypeNames,
             filePreviewUrl: workOrderUrl,
         });
     } catch (error) {
