@@ -30,6 +30,11 @@ const projectDetailsSchema = new mongoose.Schema({
     secondaryPrsonPhoneNo: String,
     primaryPersonEmail:String,
     secondaryPersonEmail:String,
+    paymentMethod:String,
+    projectValueYearly:[{
+        financialYear:String,
+        amount:String,
+    }],
     directrate:String,
     typeOfWork:String,
     serviceLocation:String,
