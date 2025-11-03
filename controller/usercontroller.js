@@ -2979,12 +2979,38 @@ const getCertificate = async(req,res)=>{
 
     let query = { isDeleted: false };
 
-    if (search) {
-      query.$or = [
-        { certificateName: { $regex: search, $options: "i" } },
-        { assignedPerson: { $regex: search, $options: "i" } },
-      ];
-    }
+        if (search) {
+            const regex = new RegExp(search, 'i');
+
+            const matchingCertificates = await CertificateMaster.find({
+                certificateName: { $regex: regex }
+            }).select('_id').lean();
+            const matchingCertificateIds = matchingCertificates.map(c => c._id);
+
+            const matchingPersons = await stpiEmpDetailsModel.find({
+                $or: [
+                    { ename: { $regex: regex } },
+                    { empid: { $regex: regex } }
+                ]
+            }).select('_id').lean();
+            const matchingPersonIds = matchingPersons.map(p => p._id);
+
+            const ors = [];
+            if (matchingCertificateIds.length) {
+                ors.push({ certificateName: { $in: matchingCertificateIds } });
+            }
+            if (matchingPersonIds.length) {
+                ors.push({ assignedPerson: { $in: matchingPersonIds } });
+            }
+            if (ors.length) {
+                query.$or = ors;
+            } else {
+                query.$or = [
+                    { issuedDate: { $regex: regex } },
+                    { validUpto: { $regex: regex } }
+                ];
+            }
+        }
 
     const totalCount = await CertificateDetailsModel.countDocuments(query);
 
