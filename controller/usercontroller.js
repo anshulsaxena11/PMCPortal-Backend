@@ -762,7 +762,8 @@ const directrate = async (req,res) => {
 // get Directorate List
 const getDirectrateList = async(req,res) =>{
     try{
-        const directrateList = await directrateModel.find().select('_id directrate');
+         const directrateList = await directrateModel.distinct("directrate");
+        
         res.status(200).json({
             statusCode: 200,
             message:"",
