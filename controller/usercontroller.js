@@ -28,6 +28,7 @@ const StateModel = require('../models/stateModel');
 const CertificateDetailsModel = require('../models/certificateModel')
 const CertificateMaster = require('../models/certificateMasterModel')
 const DomainMasterModel = require('../models/domainMasterModel')
+const CertificateTypeMaster = require('../models/certificateTypeMasterModel')
 const StpiEmpModel = require('../models/StpiEmpModel')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
@@ -3057,14 +3058,15 @@ const getCertificate = async(req,res)=>{
 
     const totalCount = await CertificateDetailsModel.countDocuments(query);
 
-    const data = await CertificateDetailsModel.find(query).populate('certificateName',"certificateName").populate('assignedPerson','ename')
+    const data = await CertificateDetailsModel.find(query).populate('certificateName',"certificateName").populate('assignedPerson','ename').populate('certificateType',"certificateType")
       .skip((page - 1) * limit)
       .limit(limit) 
       .sort({ createdAt: -1 });
 
     const certificate = data.map(cert => ({
         _id: cert._id,
-        certificateName: cert.certificateName?.certificateName || "", // flatten
+        certificateName: cert.certificateName?.certificateName || "", 
+        certificateType: cert.certificateType?.certificateType || "",
         assignedPerson: cert.assignedPerson?.ename || "",
         empid: cert.assignedPerson?.empid || "",
         issuedDate: cert.issuedDate,
@@ -3133,7 +3135,7 @@ const deleteCertificate = async (req, res) => {
 const getCertificateById = async(req,res)=>{
     try {
         const { id } = req.params;
-        const project = await CertificateDetailsModel.findById(id).populate('certificateName',"certificateName").populate('assignedPerson','ename')
+        const project = await CertificateDetailsModel.findById(id).populate('certificateName',"certificateName").populate('assignedPerson','ename').populate('certificateType',"certificateType");
 
         if (!project) {
             return res.status(404).json({
@@ -3149,8 +3151,12 @@ const getCertificateById = async(req,res)=>{
 
         const formatted = {
             _id: project._id,
-            certificateName: project.certificateName?.certificateName || "",
-            assignedPerson: project.assignedPerson?.ename || "",
+            certificateView: project.certificateName?.certificateName || "",
+            certificateTypeView: project.certificateType?.certificateType || "",
+            assignedPersonView: project.assignedPerson?.ename || "",
+            certificateName: project.certificateName?._id || "",
+            certificateType: project.certificateType?._id || "",
+            assignedPerson: project.assignedPerson?._id || "",
             issuedDate: project.issuedDate,
             validUpto: project.validUpto,
             uploadeCertificate: project.uploadeCertificate,
@@ -3177,10 +3183,89 @@ const getCertificateById = async(req,res)=>{
 const getCertificateByUserId = async (req, res) => {
     try {
         const { userid } = req.params;
+        if (!userid || userid === 'null' || userid === 'undefined' || !mongoose.isValidObjectId(userid)) {
+            return res.status(400).json({
+                statusCode: 400,
+                success: false,
+                message: 'Invalid or missing user id',
+            });
+        }
+        const { page, limit, search, certificateType } = req.query;
+         let query = {
+            assignedPerson: userid,
+            isDeleted: { $ne: true },
+        };
+
+        if (certificateType) {
+            query.certificateType = certificateType;
+        }
+
+        if (page && limit) {
+            const pageInt = parseInt(page);
+            const limitInt = parseInt(limit);
+            const skip = (pageInt - 1) * limitInt;
+
+            if (search) {
+                const matchingCertificates = await CertificateDetailsModel.find({
+                    assignedPerson: userid,
+                    isDeleted: { $ne: true },
+                })
+                    .populate({
+                        path: "certificateName",
+                        match: { certificateName: { $regex: search, $options: "i" } },
+                        select: "_id",
+                    })
+                    .populate({
+                        path: "certificateType",
+                        match: { certificateType: { $regex: search, $options: "i" } },
+                        select: "_id",
+                    });
+
+                const matchedIds = matchingCertificates
+                    .filter(
+                        (cert) =>
+                            cert.certificateName !== null || cert.certificateType !== null
+                    )
+                    .map((cert) => cert._id);
+
+                query._id = { $in: matchedIds };
+            }
+
+            const total = await CertificateDetailsModel.countDocuments(query);
+
+            const certificates = await CertificateDetailsModel.find(query)
+                .populate("certificateName", "certificateName")
+                .populate("assignedPerson", "ename")
+                .populate("certificateType", "certificateType")
+                .skip(skip)
+                .limit(limitInt)
+                .sort({ createdAt: -1 });
+
+            const certificatesWithUrl = certificates.map((cert) => {
+                const certObject = cert.toObject();
+                certObject.certificateUrl = certObject.uploadeCertificate
+                    ? `${process.env.React_URL}/${certObject.uploadeCertificate}`
+                    : null;
+                return certObject;
+            });
+
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                data: certificatesWithUrl,
+                pagination: {
+                    total,
+                    page: pageInt,
+                    limit: limitInt,
+                    totalPages: Math.ceil(total / limitInt),
+                },
+            });
+        }
 
         const certificates = await CertificateDetailsModel.find({ assignedPerson: userid })
             .populate("certificateName", "certificateName")
-            .populate("assignedPerson", "ename");
+            .populate("assignedPerson", "ename")
+            .populate("certificateType", "certificateType") ;
 
         if (!certificates || certificates.length === 0) {
             return res.status(404).json({
@@ -3260,66 +3345,113 @@ const editCertificateDetails = async(req,res)=>{
   }
 }
 
-const getCertificateMaster = async(req,res)=>{
-     try{
-        const {page, limit, search} = req.query
+const getCertificateMaster = async (req, res) => {
+    try {
+        const { page, limit, search, certificateType } = req.query;
         let query = { isDeleted: { $ne: true } };
-         if (search) {
-            query.$or = [
-                 { certificateName: { $regex: search, $options: "i" } },
-            ];
+
+        if (search) {
+            const regex = new RegExp(search, 'i');
+
+            const matchingTypes = await CertificateTypeMaster.find({ certificateType: { $regex: regex } })
+                .select('_id')
+                .lean();
+            const matchingTypeIds = matchingTypes.map((t) => t._id);
+
+            query.$or = [{ certificateName: { $regex: regex } }];
+            if (matchingTypeIds.length) {
+                query.$or.push({ certificateType: { $in: matchingTypeIds } });
+            }
         }
+
         if (page && limit) {
-            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const pageInt = parseInt(page);
+            const limitInt = parseInt(limit);
+            const skip = (pageInt - 1) * limitInt;
+
             const total = await CertificateMaster.countDocuments(query);
 
-            const projecttypeList = await CertificateMaster.find(query)
+            const docs = await CertificateMaster.find(query)
                 .skip(skip)
-                .limit(parseInt(limit));
+                .limit(limitInt)
+                .populate('certificateType', 'certificateType')
+                .lean();
+
+            const data = docs.map((d) => ({
+                ...d,
+                certificateType: d.certificateType ? d.certificateType.certificateType : null,
+            }));
+
+            const certificateType = [...new Set(data.map((d) => d.certificateType).filter(Boolean))];
 
             return res.status(200).json({
                 statusCode: 200,
-                data: projecttypeList,
+                data,
+                certificateType,
                 pagination: {
-                total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(total / parseInt(limit))
+                    total,
+                    page: pageInt,
+                    limit: limitInt,
+                    totalPages: Math.ceil(total / limitInt),
                 },
-                message: "Certificate has been Fetched with Pagination"
+                message: 'Certificate has been Fetched with Pagination',
+            });
+        } else if (certificateType) {
+            const certificate = await CertificateMaster.find({ certificateType, isDeleted: { $ne: true } }).lean();
+
+            return res.status(200).json({
+                statusCode: 200,
+                data: certificate,
+                message: 'Certificate has been Fetched by Certificate Type',
             });
         }
-        else{
-            const projecttypeList = await CertificateMaster.find({isDeleted: { $ne: true }}).select('_id certificateName');;
-            res.status(200).json({
-                statusCode: 200,
-                message:"",
-                data:projecttypeList
-            })
-        }
 
+        const list = await CertificateMaster.find({ isDeleted: { $ne: true } })
+            .select('_id certificateName certificateType')
+            .populate('certificateType', 'certificateType')
+            .lean();
 
-    }catch(error){
+        const data = list.map((d) => ({
+            _id: d._id,
+            certificateName: d.certificateName,
+            certificateType: d.certificateType ? d.certificateType.certificateType : null,
+        }));
+
+        return res.status(200).json({
+            statusCode: 200,
+            message: '',
+            data,
+        });
+    } catch (error) {
         res.status(400).json({
-            statusCode:400,
-            message:"unable to get device list",
-            data: error.message || error
-        })
+            statusCode: 400,
+            message: 'unable to get device list',
+            data: error.message || error,
+        });
     }
-}
+};
 
 const getCertificateMasterById = async(req,res) => {
      try {
         const { id } = req.params;
-        let certificateView = await CertificateMaster.findById(id)
+        let responseData = await CertificateMaster.findById(id).populate('certificateType', 'certificateType');
+          
 
-        if (!certificateView) {
+        if (!responseData) {
             return res.status(404).json({
                 statusCode: 404,
                 success: false,
                 message: "Certificate not found",
             });
         }  
+        const certificateType = responseData?.certificateType?._id
+        const certificateTypeName = responseData?.certificateType?.certificateType
+
+        const certificateView = {
+            ...responseData._doc,
+            certificateType,
+            certificateTypeName
+        };
         res.status(200).json({
             statusCode: 200,
             success: true,
@@ -3427,7 +3559,6 @@ const getEmpDataById = async (req, res) => {
         select: "ProjectTypeName",
       })
       .lean();
-console.log(empDetails);
     if (!empDetails) {
       return res.status(404).json({
         statusCode: 404,
@@ -3774,6 +3905,90 @@ const editDomain = async(req,res) =>{
     }
 }
 
+const postCertificateTypeMaster = async(req,res) => {
+    try{
+        const payload = req.body;
+
+        if(!payload){
+            return res.status(400).json({
+                statusCode:400,
+                message :"please enter the require field",
+            })
+        }
+        const existingDomain = await CertificateTypeMaster.findOne({ certificateType: payload.certificateType });
+
+        if (existingDomain) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Certificate already exists",
+            });
+        }
+
+        payload.createdById = req.session?.user.id ;
+        payload.createdbyIp = await getClientIp(req)
+        const newCertificateDetails = new CertificateTypeMaster(payload);
+        await newCertificateDetails.save();
+        res.status(200).json({
+            statusCode:200,
+            message:'Certificate Type has been Submitted'
+        })
+    }catch(error){
+        res.status(400).json({
+            statusCode:200,
+            error
+        })
+    }
+}
+
+const getCertificateTypeMaster = async(req,res)=>{
+     try{
+        const {page, limit, search} = req.query
+        let query = { isDeleted: { $ne: true } };
+         if (search) {
+            query.$or = [
+                 { certificateType: { $regex: search, $options: "i" } },
+            ];
+        }
+        if (page && limit) {
+            const skip = (parseInt(page) - 1) * parseInt(limit);
+            const total = await CertificateTypeMaster.countDocuments(query);
+
+            const projecttypeList = await CertificateTypeMaster.find(query)
+                .skip(skip)
+                .limit(parseInt(limit));
+
+            return res.status(200).json({
+                statusCode: 200,
+                data: projecttypeList,
+                pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / parseInt(limit))
+                },
+                message: "Certificate has been Fetched with Pagination"
+            });
+        }
+        else{
+            const projecttypeList = await CertificateTypeMaster.find({isDeleted: { $ne: true }}).select('_id certificateType');;
+            res.status(200).json({
+                statusCode: 200,
+                message:"",
+                data:projecttypeList
+            })
+        }
+
+
+    }catch(error){
+        res.status(400).json({
+            statusCode:400,
+            message:"unable to get device list",
+            data: error.message || error
+        })
+    }
+}
+
+
 module.exports = {
     perseonalDetails,
     deviceList,
@@ -3855,5 +4070,7 @@ module.exports = {
     editDomain,
     getCertificateMasterById,
     postCertificateMaster,
-    editCertificate
+    editCertificate,
+    postCertificateTypeMaster,
+    getCertificateTypeMaster
 }
