@@ -70,7 +70,7 @@ routes.get('/EmpListSc',authMiddleware,allowRoles('Admin','SubAdmin','User'),Use
 routes.get('/devices-list',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getNetworkDeviceList)
 routes.get('/searchName',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.reportNameList)
 routes.get('/notification',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.notification)
-routes.get('/certificate',authMiddleware,allowRoles('Admin'),UserCtrl.getCertificate)
+routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificate)
 routes.get('/certificate-Master',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateMaster)
 routes.get('/types',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeList)
 routes.get('/domain-Sector',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getDomainMaster)
