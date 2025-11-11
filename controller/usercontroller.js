@@ -1898,6 +1898,7 @@ const getAllTenderList = async (req, res) => {
     const { isDeleted = false } = req.query;
     const isDeletedBool = isDeleted === "true";
 
+    // ✅ Fetch all tenders
     const tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
       .populate({
         path: "taskforceempid",
@@ -1909,14 +1910,26 @@ const getAllTenderList = async (req, res) => {
         model: "state",
         select: "stateName",
       })
-      .lean(); 
-    const directorates = await directrateModel.find().select("stateId directrate").lean();
+      .lean();
 
+    // ✅ Fetch directorates & sort alphabetically
+    const directorates = await directrateModel
+      .find()
+      .select("stateId directrate")
+      .lean();
+
+    directorates.sort((a, b) =>
+      a.directrate?.toLowerCase().localeCompare(b.directrate?.toLowerCase())
+    );
+
+    // ✅ Match tenders with directorates
     const tendersMapped = tenders.map((tender) => {
-      const tenderStateId = tender?.state?._id?.toString(); 
+      const tenderStateId = tender?.state?._id?.toString();
 
       const matchedDir = directorates.find(
-        (dir) => dir.stateId?.toString() === tenderStateId
+        (dir) =>
+          Array.isArray(dir.stateId) &&
+          dir.stateId.map(String).includes(tenderStateId)
       );
 
       return {
@@ -1928,11 +1941,13 @@ const getAllTenderList = async (req, res) => {
       };
     });
 
+    // ✅ Response with sorted dropdown
     res.status(200).json({
       statusCode: 200,
       success: true,
       total: tendersMapped.length,
       data: tendersMapped,
+      directorates: directorates.map((d) => d.directrate), // for dropdown (sorted)
     });
   } catch (error) {
     console.error("Error in getAllTenderList:", error);
@@ -1946,40 +1961,56 @@ const getAllTenderList = async (req, res) => {
 };
 
 
+
 const getTenderDetails = async (req, res) => {
   try {
-
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = "", 
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
       isDeleted = "",
-      directorate = "" 
+      directorate = "",
+      state = "",
     } = req.query;
 
     const pageInt = parseInt(page);
     const limitInt = parseInt(limit);
     const isDeletedBool = isDeleted === "true";
 
+    // ✅ Step 1: Fetch tenders
     let tenders = await TenderTrackingModel.find({ isDeleted: isDeletedBool })
       .populate({
-        path: "taskforceempid", 
+        path: "taskforceempid",
         model: "stpiEmp",
-        select: "ename", 
+        select: "ename",
       })
       .populate({
         path: "state",
-        model: "state", 
-        select: "stateName"
+        model: "state",
+        select: "stateName",
       })
       .sort({ createdAt: -1 })
-      .lean(); 
+      .lean();
 
-    const directorates = await directrateModel.find().select("stateId directrate").lean();
+    // ✅ Step 2: Fetch all directorates and sort alphabetically
+    const directorates = await directrateModel
+      .find()
+      .select("stateId directrate")
+      .lean();
 
-    const tendersMapped = tenders.map(t => {
+    // Sort alphabetically by name (A → Z)
+    directorates.sort((a, b) =>
+      a.directrate?.toLowerCase().localeCompare(b.directrate?.toLowerCase())
+    );
+
+    // ✅ Step 3: Map tenders with directorate name
+    const tendersMapped = tenders.map((t) => {
       const stateId = t.state?._id?.toString();
-      const dirObj = directorates.find(d => d.stateId?.toString() === stateId);
+
+      // Find the first directorate whose stateId array includes this state
+      const dirObj = directorates.find(
+        (d) => Array.isArray(d.stateId) && d.stateId.map(String).includes(stateId)
+      );
 
       return {
         ...t,
@@ -1990,52 +2021,63 @@ const getTenderDetails = async (req, res) => {
       };
     });
 
+    // ✅ Step 4: Apply filters
     let filteredTenders = tendersMapped;
+
+    if (state && state.toLowerCase() !== "all") {
+      filteredTenders = filteredTenders.filter(
+        (t) => t.state?._id?.toString() === state
+      );
+    }
+
     if (directorate && directorate.toLowerCase() !== "all") {
       filteredTenders = filteredTenders.filter(
-        t => t.directorateName === directorate
+        (t) => t.directorateName?.toLowerCase() === directorate.toLowerCase()
       );
     }
 
-    if (search) {
+    if (search.trim()) {
       const regex = new RegExp(search, "i");
       filteredTenders = filteredTenders.filter(
-        t =>
+        (t) =>
           regex.test(t.tenderName || "") ||
           regex.test(t.organizationName || "") ||
-          (t.ename && regex.test(t.ename)) ||
-          (t.stateName && regex.test(t.stateName)) ||
-          (t.directorateName && regex.test(t.directorateName))
+          regex.test(t.ename || "") ||
+          regex.test(t.stateName || "") ||
+          regex.test(t.directorateName || "")
       );
     }
 
+    // ✅ Step 5: Pagination
     const totalCount = filteredTenders.length;
-
     const paginatedTenders = filteredTenders.slice(
-      (pageInt - 1) * limitInt, 
-      pageInt * limitInt        
+      (pageInt - 1) * limitInt,
+      pageInt * limitInt
     );
 
+    // ✅ Step 6: Send response
     res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       success: true,
       total: totalCount,
       page: pageInt,
       limit: limitInt,
       totalPages: Math.ceil(totalCount / limitInt),
-      data: paginatedTenders
+      data: paginatedTenders,
+      directorates: directorates.map((d) => d.directrate), // 👈 Added sorted directorate list
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching tender details:", error);
     res.status(400).json({
       statusCode: 400,
       success: false,
       message: "Server Error",
-      error,
+      error: error.message,
     });
   }
 };
+
+
 
 const getState = async(req,res)=>{
     try{
