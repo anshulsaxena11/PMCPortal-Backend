@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const certificateDetailsSchema = new mongoose.Schema({
     certificateName:{ type: mongoose.Schema.Types.ObjectId, ref: "CertificateMaster" },
+    certificateType:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'CertificateTypeMaster',
+    },
     assignedPerson:{ type: mongoose.Schema.Types.ObjectId, ref: "stpiEmp" },
     issuedDate:{type:Date, default:null},
     validUpto:{type:Date, default:null},
