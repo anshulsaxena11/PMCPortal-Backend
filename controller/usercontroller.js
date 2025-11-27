@@ -632,22 +632,47 @@ const getProjectTypeById = async(req,res) =>{
 //save report
 const postReport = async (req, res) => {
     try {
-        const { proofOfConcept, ...ReportDetails } = req.body;
-        let parsedProofOfConcept = [];
+        // 1. Destructure and extract the complex JSON fields (which arrive as strings)
+        // and the rest of the simple string fields.
+        const { 
+            proofOfConcept, 
+            roundStatus, // <-- CRITICAL: Extract roundStatus here
+            ...ReportDetails 
+        } = req.body;
 
+        // 2. Parse roundStatus explicitly
+        let parsedRoundStatus = [];
+        if (roundStatus) {
+            try {
+                // Ensure it's treated as an object array, not a string
+                parsedRoundStatus = typeof roundStatus === "string" 
+                    ? JSON.parse(roundStatus) 
+                    : roundStatus;
+            } catch (error) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    message: "Invalid roundStatus format",
+                    error: "roundStatus must be a valid JSON array",
+                });
+            }
+        }
+
+        // 3. Existing check for vulnerability existence (using simple ReportDetails fields)
         if(ReportDetails){
             const ProjectName = await reportModel.find({projectName:ReportDetails.projectName,round:ReportDetails.round,devices:ReportDetails.devices,ipAddress:ReportDetails.ipAddress,Name:ReportDetails.Name })
             const alreadyExists = ProjectName.some(
                 report => report.vulnerabilityName === ReportDetails.vulnerabilityName
             );
             if (alreadyExists){
-               return res.status(400).json({
-                statusCode:400,
-                message: "This vulnerability already exists" 
-            });
+                return res.status(400).json({
+                 statusCode:400,
+                 message: "This vulnerability already exists" 
+             });
             }
         }
 
+        // 4. Parse proofOfConcept (Your existing, correct logic)
+        let parsedProofOfConcept = [];
         if (proofOfConcept) {
             try {
                 parsedProofOfConcept = typeof proofOfConcept === "string" 
@@ -661,60 +686,58 @@ const postReport = async (req, res) => {
                 });
             }
         }
-
-        // Ensure parsedProofOfConcept is an array
+        
         if (!Array.isArray(parsedProofOfConcept)) {
             return res.status(400).json({
                 statusCode: 400,
                 message: "proofOfConcept must be an array of steps",
             });
         }
-
+        
+        // 5. File Upload and Path Mapping Logic (Unchanged)
         let proofFiles = [];
 
-if (req.files && Array.isArray(req.files)) {
-    await Promise.all(req.files.map(async (file) => {
-        const match = file.fieldname.match(/\[(\d+)\]/); // Extract index from proof[0], proof[1]
-        if (match) {
-            const index = parseInt(match[1], 10); // Ensure index is a number
+        if (req.files && Array.isArray(req.files)) {
+            await Promise.all(req.files.map(async (file) => {
+                const match = file.fieldname.match(/\[(\d+)\]/); 
+                if (match) {
+                    const index = parseInt(match[1], 10); 
 
-            // Define paths
-            const inputPath = path.join(__dirname, '../uploads/image', file.filename); // Full path to original image
-            const outputFilename = `resized-${file.filename}`;
-            const outputDir = path.join(__dirname, '../uploads/image'); // One step back into /uploads/image/
-            const outputPath = path.join(outputDir, outputFilename);    // Full output file path
-            const outputUrl = `/uploads/image/${outputFilename}`;
+                    const inputPath = path.join(__dirname, '../uploads/image', file.filename); 
+                    const outputFilename = `resized-${file.filename}`;
+                    const outputDir = path.join(__dirname, '../uploads/image'); 
+                    const outputPath = path.join(outputDir, outputFilename); 
+                    const outputUrl = `/uploads/image/${outputFilename}`;
 
-            // Resize and compress
-            await sharp(inputPath)
-                .resize(600, 400, {
-                    fit: 'inside', 
-                    withoutEnlargement: true 
-                })              
-                .jpeg({ quality: 70 })
-                .toFile(outputPath);
+                    await sharp(inputPath)
+                        .resize(600, 400, {
+                            fit: 'inside', 
+                            withoutEnlargement: true 
+                        })              
+                        .jpeg({ quality: 70 })
+                        .toFile(outputPath);
 
-            // Save result
-            proofFiles[index] = outputUrl;
+                    proofFiles[index] = outputUrl;
+                }
+            }));
         }
-    }));
-}
 
         parsedProofOfConcept = parsedProofOfConcept.map((step, index) => ({
             noOfSteps: step.noOfSteps,
             description: step.description,
-            proof: proofFiles[index] || "", // Get file path if exists
+            proof: proofFiles[index] || "", 
         }));
 
-
+        // 6. Create Mongoose Document with the correct PARSED objects
         const newReport = new reportModel({
-            ...ReportDetails,
-            proofOfConcept: parsedProofOfConcept,
+            ...ReportDetails,          // Simple string fields
+            roundStatus: parsedRoundStatus,        // <-- PASS PARSED ARRAY
+            proofOfConcept: parsedProofOfConcept,  // <-- PASS PARSED ARRAY
             createdId: req.session?.user.id,
             createdIp:await getClientIp(req)
         });
 
-        await newReport.save();
+        await newReport.save(); // This should now succeed 🥳
 
         return res.status(201).json({
             statusCode: 201,
@@ -729,6 +752,42 @@ if (req.files && Array.isArray(req.files)) {
             message: "Unable to save report details",
             error: error.message || error,
         });
+    }
+};
+
+const updateRoundStatus = async (req, res) => {
+    try {
+        
+        console.log('rf44f4f4f4f4f4f');
+        const { projectName, round, projectType, Name, ipAddress, devices, roundStatus } = req.body;
+
+        // Use the identifying fields to locate the document
+        const reportFilter = { 
+            Name,
+            projectName, 
+            round, 
+            projectType,
+            devices,
+            ipAddress,
+            ...(projectType === 'Network Devices' && { Name, ipAddress, devices })
+        };
+        console.log(reportFilter);
+        
+        // Find the report and update the roundStatus field
+        const updatedReport = await reportModel.findOneAndUpdate(
+            reportFilter,
+            { roundStatus: roundStatus },
+            { new: true, runValidators: true } // Return the updated document and run validation
+        );
+        if (!updatedReport) {
+            return res.status(404).json({ message: "Report not found or identifying fields are incorrect." });
+        }
+
+        res.status(200).json({ message: "Round status updated successfully", data: updatedReport });
+
+    } catch (error) {
+        console.error("Status Update Error:", error);
+        res.status(500).json({ message: "Failed to update round status", error: error.message });
     }
 };
 
@@ -915,7 +974,6 @@ const getReportDetails = async (req, res) => {
   const getVulnerability = async (req, res) => {
     const { page, limit , search = "", ProjectType } = req.query;
     let query = {};
-
     if (search) {
         query.$or = [{ vulnerabilityModel: { $regex: search, $options: "i" } }];
     }
@@ -3855,5 +3913,6 @@ module.exports = {
     editDomain,
     getCertificateMasterById,
     postCertificateMaster,
-    editCertificate
+    editCertificate,
+    updateRoundStatus
 }

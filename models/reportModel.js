@@ -7,6 +7,10 @@ const reportSchema = new mongoose.Schema({
     },
     projectType:String,
     round:String,
+    roundStatus:[{
+        roundstep:String,
+        roundstepstatus:String,
+    }], 
     ipAddress:String,
     Name:String,
     vulnerabilityName:String,

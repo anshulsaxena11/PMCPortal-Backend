@@ -10,6 +10,7 @@ routes.post('/deviceList-Post',authMiddleware,allowRoles('Admin'),UserCtrl.devic
 routes.post('/directrate',authMiddleware,allowRoles('Admin'),UserCtrl.directrate)
 routes.post('/ProjectTypeList-Post',authMiddleware,allowRoles('Admin'),UserCtrl.ProjectTypeList)
 routes.post('/report',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.postReport)
+routes.put('/report/status',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.updateRoundStatus)
 routes.post('/roundList',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.addNewRound)
 routes.post('/project-mapping',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.projectMapping);
 routes.post('/skills',authMiddleware,allowRoles('Admin'),UserCtrl.skillMapping)
