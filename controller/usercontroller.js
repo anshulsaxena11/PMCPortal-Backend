@@ -4128,5 +4128,9 @@ module.exports = {
     editDomain,
     getCertificateMasterById,
     postCertificateMaster,
-    editCertificate
+    editCertificate,
+    updateRoundStatus,
+    postCertificateTypeMaster,
+    getCertificateTypeMaster
+
 }
