@@ -20,7 +20,8 @@ routes.post('/checkTenderName',authMiddleware,allowRoles('Admin','SubAdmin'),upl
 routes.post('/typeOfWork',authMiddleware,allowRoles('Admin'),UserCtrl.postTypeOfWork);
 routes.post('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),upload.single('file'),UserCtrl.postCertificate),
 routes.post('/domainSector',authMiddleware,allowRoles('Admin'),upload.single('file'),UserCtrl.postDomainSector),
-routes.post('/certificate-Master',authMiddleware,allowRoles('Admin'),UserCtrl.postCertificateMaster)
+routes.post('/certificate-Master',authMiddleware,allowRoles('Admin'),UserCtrl.postCertificateMaster),
+routes.post('/certificate-Type-Master',authMiddleware,allowRoles('Admin'),UserCtrl.postCertificateTypeMaster),
 //put
 routes.put('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.single('workOrder'),UserCtrl.editProjectDetails)
 routes.put('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin'),upload.any(),UserCtrl.updateReportById)
@@ -74,6 +75,7 @@ routes.get('/certificate',authMiddleware,allowRoles('Admin','SubAdmin','User'),U
 routes.get('/certificate-Master',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateMaster)
 routes.get('/types',authMiddleware,allowRoles('Admin'),UserCtrl.getTypeList)
 routes.get('/domain-Sector',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getDomainMaster)
+routes.get('/certificate-Type-Master',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getCertificateTypeMaster)
 //get by id
 routes.get('/project/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjectTypeById)
 routes.get('/projectDetails/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getProjecDetailsById)
