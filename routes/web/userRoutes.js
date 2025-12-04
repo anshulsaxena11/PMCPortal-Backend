@@ -56,7 +56,7 @@ routes.get('/report/:id',authMiddleware,allowRoles('Admin','SubAdmin','User'),Us
 routes.get('/allreport',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllReport);
 routes.get('/vulnerability',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getVulnerability);
 routes.get('/round',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getRound)
-routes.get('/fullreport',authMiddleware,allowRoles('Admin'),UserCtrl.getFullReport)
+routes.get('/fullreport',authMiddleware,allowRoles('Admin','SubAdmin'),UserCtrl.getFullReport)
 routes.get('/roundList',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getAllRound)
 routes.get('/stpiEmp',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getStpiEmpListActive)
 routes.get('/toolsandHardwareMaster',authMiddleware,allowRoles('Admin','SubAdmin','User'),UserCtrl.getToolsAndHardware)
