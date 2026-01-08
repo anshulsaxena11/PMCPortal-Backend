@@ -30,8 +30,12 @@ const CertificateMaster = require('../models/certificateMasterModel')
 const DomainMasterModel = require('../models/domainMasterModel')
 const CertificateTypeMaster = require('../models/certificateTypeMasterModel')
 const StpiEmpModel = require('../models/StpiEmpModel')
+const EmailSetting = require('../models/emailSetting')
 const getClientIp = require('../utils/getClientip')
 const path = require('path');
+const generatePdfFromHtml = require('../utils/generatePdfFromHtml');
+const dayjs = require('dayjs');
+const fs = require('fs');
 const { sendEmail } = require('../Service/email');
 const sharp = require('sharp');
 
@@ -4023,6 +4027,249 @@ const getCertificateTypeMaster = async(req,res)=>{
     }
 }
 
+const postEmailSetting = async (req, res) => {
+  try {
+    const { enabled, frequency, day, time } = req.body;
+
+    let emailSetting = await EmailSetting.findOne({});
+
+    if (!emailSetting) {
+      // CREATE
+      emailSetting = new EmailSetting({
+        weeklyMailEnabled: enabled,
+        frequency,
+        day,
+        time,
+      });
+    } else {
+      // UPDATE
+      emailSetting.weeklyMailEnabled = enabled;
+      emailSetting.frequency = frequency;
+      emailSetting.day = day;
+      emailSetting.time = time;
+    }
+
+    await emailSetting.save();
+
+    res.status(200).json({
+      statusCode: 200,
+      data: {
+        enabled: emailSetting.weeklyMailEnabled,
+        frequency: emailSetting.frequency,
+        day: emailSetting.day,
+        time: emailSetting.time,
+      },
+      message: 'Email settings updated successfully',
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Failed to update email settings',
+      error: error.message,
+    });
+  }
+};
+
+const getEmailSetting = async(req,res) => {
+    try{
+        let emailSetting = await EmailSetting.findOne({});
+        res.status(200).json({
+            statusCode:200,
+            enabled: emailSetting 
+        })
+    } catch(error){
+        res.status(400).json({
+            statusCode:400,
+            error
+        })
+    }
+} 
+
+const generateAndEmailReportInternal = async (emailSettings) => {
+    try {
+        if (!emailSettings || !emailSettings.weeklyMailEnabled) return;
+
+        const currentDay = dayjs().format('dddd');
+        if (!(emailSettings.frequency === 'weekly' && emailSettings.day === currentDay) && emailSettings.frequency !== 'daily') return;
+
+        // period: daily => last 1 day, weekly => last 7 days
+        const endDate = dayjs();
+        let startDate;
+        if (emailSettings.frequency === 'daily') {
+            startDate = endDate.subtract(1, 'day');
+        } else {
+            startDate = endDate.subtract(7, 'day');
+        }
+
+        const states = await StateModel.find()
+            .populate('taskForceMember', 'email')
+            .populate('stateCordinator', 'email')
+            .lean();
+
+        const allProjectsRaw = await projectdetailsModel.find().lean();
+        const allTendersRaw = await TenderTrackingModel.find({ isDeleted: { $ne: true } }).lean();
+
+        // helper normalizer
+        const normalize = s => String(s || '').toLowerCase();
+
+        const calcProjectStats = (projects) => {
+            const totalProjects = projects.length;
+            const totalValue = projects.reduce((sum, p) => sum + (Number(p.projectValue) || 0), 0);
+            const completed = projects.filter(p => {
+                const st = normalize(p.status);
+                return st.includes('completed') || st.includes('closed') || st.includes('done');
+            }).length;
+            const ongoing = projects.filter(p => {
+                const st = normalize(p.status);
+                return st.includes('ongoing') || st.includes('in progress') || st.includes('active');
+            }).length;
+            return { totalProjects, totalValue, completed, ongoing };
+        };
+
+        for (const state of states) {
+            const stateName = state.stateName || 'All';
+
+            // Projects for this state
+            const projectsForState = allProjectsRaw.filter(p => String(p.state || '') === String(state._id));
+
+            // Filter projects by period (startDate-endDate)
+            const projectDetails = projectsForState.filter(project => {
+                if (!project.startDate) return false;
+                const pd = dayjs(project.startDate).valueOf();
+                return pd >= startDate.startOf('day').valueOf() && pd <= endDate.endOf('day').valueOf();
+            });
+
+            // FY projects (use financial year containing endDate)
+            const year = endDate.year();
+            const month = endDate.month() + 1;
+            const financialYear = month >= 4 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+            const fyMatch = financialYear.match(/(\d+)-(\d+)/);
+            let projectDetailsFY = projectsForState;
+            if (fyMatch) {
+                const fyStart = dayjs(`${fyMatch[1]}-04-01`).startOf('day').valueOf();
+                const fyEnd = dayjs(`${fyMatch[2]}-03-31`).endOf('day').valueOf();
+                projectDetailsFY = projectsForState.filter(project => {
+                    if (!project.startDate) return false;
+                    const pd = dayjs(project.startDate).valueOf();
+                    return pd >= fyStart && pd <= fyEnd;
+                });
+            }
+
+            // Tenders for this state within period
+            const tendersForState = allTendersRaw.filter(t => String(t.state || '') === String(state._id));
+            const filteredRows = tendersForState.filter(t => {
+                if (!t.createdAt) return false;
+                const ts = dayjs(t.createdAt).valueOf();
+                return ts >= startDate.startOf('day').valueOf() && ts <= endDate.endOf('day').valueOf();
+            });
+
+            // current summary
+            const currentSummary = {
+                total: filteredRows.length,
+                upload: filteredRows.filter(t => normalize(t.status).includes('not submit') || normalize(t.status).includes('not submitted') || normalize(t.status).includes('upload')).length,
+                bidding: filteredRows.filter(t => {
+                    const st = normalize(t.status);
+                    return st.includes('submitted') || st.includes('under evaluation') || st.includes('bidding') || st.includes('in progress');
+                }).length,
+                notBidding: filteredRows.filter(t => {
+                    const st = normalize(t.status);
+                    return st.includes('not bidding') || st.includes('not-bidding') || st.includes('no bid') || st.includes('not bid');
+                }).length
+            };
+
+            // FY summary
+            let fyTotalTenders = 0, fyUploadCount = 0, fyBiddingCount = 0, fyNotBiddingCount = 0;
+            if (fyMatch) {
+                const fyStart = dayjs(`${fyMatch[1]}-04-01`).startOf('day').valueOf();
+                const fyEnd = dayjs(`${fyMatch[2]}-03-31`).endOf('day').valueOf();
+                const fyTenders = tendersForState.filter(t => t.createdAt && dayjs(t.createdAt).valueOf() >= fyStart && dayjs(t.createdAt).valueOf() <= fyEnd);
+                fyTotalTenders = fyTenders.length;
+                fyUploadCount = fyTenders.filter(t => normalize(t.status).includes('not submit') || normalize(t.status).includes('not submitted') || normalize(t.status).includes('upload')).length;
+                fyBiddingCount = fyTenders.filter(t => {
+                    const st = normalize(t.status);
+                    return st.includes('submitted') || st.includes('under evaluation') || st.includes('bidding') || st.includes('in progress');
+                }).length;
+                fyNotBiddingCount = fyTenders.filter(t => {
+                    const st = normalize(t.status);
+                    return st.includes('not bidding') || st.includes('not-bidding') || st.includes('no bid') || st.includes('not bid');
+                }).length;
+            }
+
+            const statsFY = calcProjectStats(projectDetailsFY);
+            const statsPeriod = calcProjectStats(projectDetails);
+
+            // Build rows: use a conservative set of columns mirroring frontend intent
+            const tenderCols = [
+                { field: 'tenderName', headerName: 'Tender Name' },
+                { field: 'organizationName', headerName: 'Organization' },
+                { field: 'lastDate', headerName: 'Last Date' },
+                { field: 'status', headerName: 'Status' },
+                { field: 'createdAt', headerName: 'Created On' }
+            ];
+
+            const projectCols = [
+                { field: 'projectName', headerName: 'Project Name' },
+                { field: 'startDate', headerName: 'Start Date' },
+                { field: 'endDate', headerName: 'End Date' },
+                { field: 'projectValue', headerName: 'Project Value' },
+                { field: 'status', headerName: 'Status' }
+            ];
+
+            const salesDataRows = filteredRows.map(r => {
+                const lastDate = r.lastDate ? dayjs(r.lastDate).format('YYYY-MM-DD') : 'N/A';
+                const createdOn = r.createdAt ? dayjs(r.createdAt).format('DD/MM/YYYY') : 'N/A';
+                const valueINR = r.valueINR ? (Number(r.valueINR) / 100000).toFixed(2) + ' Lakhs' : 'N/A';
+                return `<tr><td>${r.tenderName || ''}</td><td>${r.organizationName || ''}</td><td>${lastDate}</td><td>${r.status || ''}</td><td>${createdOn}</td></tr>`;
+            }).join('');
+
+            const projectDataRows = projectDetails.map((p, idx) => {
+                const sd = p.startDate ? dayjs(p.startDate).format('DD/MM/YYYY') : 'N/A';
+                const ed = p.endDate ? dayjs(p.endDate).format('DD/MM/YYYY') : 'N/A';
+                const pv = p.projectValue ? `₹${(Number(p.projectValue) / 100000).toFixed(2)} Lakhs` : 'N/A';
+                return `<tr><td>${idx + 1}</td><td>${p.projectName || ''}</td><td>${sd}</td><td>${ed}</td><td>${pv}</td><td>${p.status || ''}</td></tr>`;
+            }).join('');
+
+            const headerText = `${stateName} - Report for Period: ${startDate.format('DD/MM/YYYY')} to ${endDate.format('DD/MM/YYYY')}`;
+
+            const htmlContent = `<!doctype html><html><head><meta charset="utf-8"/><style>body{font-family:Arial,Helvetica,sans-serif}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;text-align:left}th{background:#1E90FF;color:#fff}thead{display:table-header-group}tr{page-break-inside:avoid}</style></head><body>` +
+                `<h2>${headerText}</h2>` +
+                `<h3>(1) Summary</h3>` +
+                `<div><p><strong>Financial Year:</strong> ${financialYear}</p><p><strong>Period:</strong> ${startDate.format('DD/MM/YYYY')} - ${endDate.format('DD/MM/YYYY')}</p></div>` +
+                `<div style="display:flex;gap:40px"><div><p>Total Tenders: ${fyTotalTenders}</p><p>Upload / Bidding: ${fyUploadCount} / ${fyBiddingCount}</p><p>Not Bidding: ${fyNotBiddingCount}</p></div><div><p>Total Tenders: ${currentSummary.total}</p><p>Upload / Bidding: ${currentSummary.upload} / ${currentSummary.bidding}</p><p>Not Bidding: ${currentSummary.notBidding}</p></div></div>` +
+                `<h3>(2) Sales Data Added in This Period</h3><table><thead><tr>${tenderCols.map(c=>`<th>${c.headerName}</th>`).join('')}</tr></thead><tbody>${salesDataRows}</tbody></table>` +
+                `<h3>(3) Project Data Added in This Period</h3><table><thead><tr><th>S.No</th><th>Project Name</th><th>Start Date</th><th>End Date</th><th>Project Value</th><th>Status</th></tr></thead><tbody>${projectDataRows}</tbody></table>` +
+                `</body></html>`;
+
+            // generate pdf
+            const pdfBuffer = await generatePdfFromHtml(htmlContent);
+
+            const folder = path.join('uploads', 'documents', 'reports');
+            await fs.promises.mkdir(folder, { recursive: true });
+            const fileName = `${stateName.replace(/\s+/g, '_')}_${startDate.format('YYYYMMDD')}_${endDate.format('YYYYMMDD')}.pdf`;
+            const absFilePath = path.resolve(folder, fileName);
+            await fs.promises.writeFile(absFilePath, pdfBuffer);
+
+            const publicUrl = `${process.env.React_URL}/${path.relative(process.cwd(), absFilePath).replace(/\\/g, '/')}`;
+            const recipients = [];
+            if (state.taskForceMember && state.taskForceMember.email) recipients.push(state.taskForceMember.email);
+            if (state.stateCordinator && state.stateCordinator.email) recipients.push(state.stateCordinator.email);
+
+            if (recipients.length) {
+                // Prefer sending to taskForceMember only (as requested)
+                const toEmail = state.taskForceMember && state.taskForceMember.email ? state.taskForceMember.email : recipients[0];
+                const htmlMsg = `<p>Dear User,</p><p>Please find the report for <strong>${stateName}</strong> for period <strong>${startDate.format('DD/MM/YYYY')}</strong> to <strong>${endDate.format('DD/MM/YYYY')}</strong>.</p><p>Attached is the PDF report.</p><p>Regards,<br/>PMC Portal</p>`;
+                // Attach generated PDF (absolute path)
+                await sendEmail( `Report - ${stateName}`, '', htmlMsg, [{ filename: fileName, path: absFilePath }]);
+            }
+        }
+
+    } catch (error) {
+        console.error('Error in generateAndEmailReportInternal:', error);
+    }
+}
+
+
 
 module.exports = {
     perseonalDetails,
@@ -4108,6 +4355,8 @@ module.exports = {
     editCertificate,
     updateRoundStatus,
     postCertificateTypeMaster,
-    getCertificateTypeMaster
-
+    getCertificateTypeMaster,
+    postEmailSetting,
+    getEmailSetting,
+    generateAndEmailReportInternal
 }

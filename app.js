@@ -48,6 +48,14 @@ app.use(session({
 app.use('/api/v1', require('./routes/indexRoutes'));
 http.createServer(app);
 
+// start scheduled jobs
+try{
+  const startEmailCron = require('./cron/cron');
+  startEmailCron();
+}catch(err){
+  console.error('Failed to start cron jobs:', err);
+}
+
 app.listen(port, Host ,() => {
     console.log(`Server is running on ${port}`)
 }); 
