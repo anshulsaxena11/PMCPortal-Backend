@@ -4260,7 +4260,7 @@ const generateAndEmailReportInternal = async (emailSettings) => {
                 const toEmail = state.taskForceMember && state.taskForceMember.email ? state.taskForceMember.email : recipients[0];
                 const htmlMsg = `<p>Dear User,</p><p>Please find the report for <strong>${stateName}</strong> for period <strong>${startDate.format('DD/MM/YYYY')}</strong> to <strong>${endDate.format('DD/MM/YYYY')}</strong>.</p><p>Attached is the PDF report.</p><p>Regards,<br/>PMC Portal</p>`;
                 // Attach generated PDF (absolute path)
-                await sendEmail( `Report - ${stateName}`, '', htmlMsg, [{ filename: fileName, path: absFilePath }]);
+                await sendEmail(`anshul007saxena@gmail.com`, `Report - ${stateName}`, '', htmlMsg, [{ filename: fileName, path: absFilePath }]);
             }
         }
 

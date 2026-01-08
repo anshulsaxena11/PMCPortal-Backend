@@ -20,7 +20,7 @@ const sendEmail = async (to, subject, text, html = null, attachments = []) => {
   try {
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
+      to,
       subject,
       text,
       html,
