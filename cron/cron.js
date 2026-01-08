@@ -13,14 +13,15 @@ const startEmailCronJob = () => {
             const currentTime = now.format('HH:mm');
             const currentDay = now.format('dddd');
 
-            if (emailSettings.time !== currentTime) return;
+            // Only run when configured time matches current time
+            if (emailSettings.time === currentTime) {
+                if (emailSettings.frequency === 'daily') {
+                    await generateAndEmailReportInternal(emailSettings);
+                }
 
-            if(emailSettings.frequency === 'daily'){
-                await generateAndEmailReportInternal(emailSettings);
-            }
-
-            if(emailSettings.frequency === 'weekly' && emailSettings.day === currentDay){
-                await generateAndEmailReportInternal(emailSettings);  
+                if (emailSettings.frequency === 'weekly' && emailSettings.day === currentDay) {
+                    await generateAndEmailReportInternal(emailSettings);
+                }
             }
             
         }catch(error){
