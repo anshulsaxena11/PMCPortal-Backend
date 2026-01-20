@@ -4088,10 +4088,20 @@ const getEmailSetting = async(req,res) => {
 
 const generateAndEmailReportInternal = async (emailSettings) => {
     try {
-        if (!emailSettings || !emailSettings.weeklyMailEnabled) return;
+        console.log('[generateAndEmailReportInternal] Starting report generation and email...');
+        
+        if (!emailSettings || !emailSettings.weeklyMailEnabled) {
+            console.log('[generateAndEmailReportInternal] Email settings disabled or not found');
+            return;
+        }
 
         const currentDay = dayjs().format('dddd');
-        if (!(emailSettings.frequency === 'weekly' && emailSettings.day === currentDay) && emailSettings.frequency !== 'daily') return;
+        if (!(emailSettings.frequency === 'weekly' && emailSettings.day === currentDay) && emailSettings.frequency !== 'daily') {
+            console.log(`[generateAndEmailReportInternal] Day/Frequency mismatch. Current: ${currentDay}, Configured: ${emailSettings.day}, Frequency: ${emailSettings.frequency}`);
+            return;
+        }
+
+        console.log(`[generateAndEmailReportInternal] Processing for frequency: ${emailSettings.frequency}`);
 
         // period: daily => last 1 day, weekly => last 7 days
         const endDate = dayjs();
@@ -4106,6 +4116,8 @@ const generateAndEmailReportInternal = async (emailSettings) => {
             .populate('taskForceMember', 'email')
             .populate('stateCordinator', 'email')
             .lean();
+
+        console.log(`[generateAndEmailReportInternal] Found ${states.length} states`);
 
         const allProjectsRaw = await projectdetailsModel.find().lean();
         const allTendersRaw = await TenderTrackingModel.find({ isDeleted: { $ne: true } }).lean();
@@ -4127,6 +4139,7 @@ const generateAndEmailReportInternal = async (emailSettings) => {
             return { totalProjects, totalValue, completed, ongoing };
         };
 
+        let emailCount = 0;
         for (const state of states) {
             const stateName = state.stateName || 'All';
 
@@ -4242,6 +4255,7 @@ const generateAndEmailReportInternal = async (emailSettings) => {
                 `</body></html>`;
 
             // generate pdf
+            console.log(`[generateAndEmailReportInternal] Generating PDF for state: ${stateName}`);
             const pdfBuffer = await generatePdfFromHtml(htmlContent);
 
             const folder = path.join('uploads', 'documents', 'reports');
@@ -4249,6 +4263,8 @@ const generateAndEmailReportInternal = async (emailSettings) => {
             const fileName = `${stateName.replace(/\s+/g, '_')}_${startDate.format('YYYYMMDD')}_${endDate.format('YYYYMMDD')}.pdf`;
             const absFilePath = path.resolve(folder, fileName);
             await fs.promises.writeFile(absFilePath, pdfBuffer);
+
+            console.log(`[generateAndEmailReportInternal] PDF saved to: ${absFilePath}`);
 
             const publicUrl = `${process.env.React_URL}/${path.relative(process.cwd(), absFilePath).replace(/\\/g, '/')}`;
             const recipients = [];
@@ -4258,11 +4274,19 @@ const generateAndEmailReportInternal = async (emailSettings) => {
             if (recipients.length) {
                 // Prefer sending to taskForceMember only (as requested)
                 const toEmail = state.taskForceMember && state.taskForceMember.email ? state.taskForceMember.email : recipients[0];
-                const htmlMsg = `<p>Dear User,</p><p>Please find the report for <strong>${stateName}</strong> for period <strong>${startDate.format('DD/MM/YYYY')}</strong> to <strong>${endDate.format('DD/MM/YYYY')}</strong>.</p><p>Attached is the PDF report.</p><p>Regards,<br/>PMC Portal</p>`;
+                console.log(`[generateAndEmailReportInternal] Sending email to: ${toEmail}`);
+                
+                const htmlMsg = `<p>Dear User,</p><p>Please find enclosed the project and sales data of the last one month of your Directorate.</p><p>In case some data is missing then please upload in portal</p><p>Regards,<br/>PMC Portal</p>`;
                 // Attach generated PDF (absolute path)
                 await sendEmail(toEmail, `Report - ${stateName}`, '', htmlMsg, [{ filename: fileName, path: absFilePath }]);
+                emailCount++;
+                console.log(`[generateAndEmailReportInternal] Email sent successfully to: ${toEmail}`);
+            } else {
+                console.log(`[generateAndEmailReportInternal] No recipients found for state: ${stateName}`);
             }
         }
+        
+        console.log(`[generateAndEmailReportInternal] Report generation completed. Emails sent: ${emailCount}`);
 
     } catch (error) {
         console.error('Error in generateAndEmailReportInternal:', error);
