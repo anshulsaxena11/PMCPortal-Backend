@@ -4278,7 +4278,7 @@ const generateAndEmailReportInternal = async (emailSettings) => {
                 
                 const htmlMsg = `<p>Dear User,</p><p>Please find enclosed the project and sales data of the last one month of your Directorate.</p><p>In case some data is missing then please upload in portal</p><p>Regards,<br/>PMC Portal</p>`;
                 // Attach generated PDF (absolute path)
-                await sendEmail(toEmail, `Report - ${stateName}`, '', htmlMsg, [{ filename: fileName, path: absFilePath }]);
+                await sendEmail(process.env.Reciver_Email, `Report - ${stateName}`, '', htmlMsg, [{ filename: fileName, path: absFilePath }]);
                 emailCount++;
                 console.log(`[generateAndEmailReportInternal] Email sent successfully to: ${toEmail}`);
             } else {
