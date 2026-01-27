@@ -539,7 +539,7 @@ const forgetPassword = async(req,res) =>{
 
 const getloginDetails = async (req, res) => {
   try {
-    const {role = "",search = "",dir = "",centre = "",etype = "",taskForceMember = "",page,limit,StatusNoida = ""} = req.query;
+    const {role = "",search = "",dir = "",centre = "",etype = "",taskForceMember = "",page,limit,StatusNoida = "",emailsOnly} = req.query;
     const shouldFilter =role.trim() || dir.trim() || centre.trim() || etype.trim() || taskForceMember.trim() || StatusNoida.trim();
     let filter = {};
     if (shouldFilter) {
@@ -550,6 +550,21 @@ const getloginDetails = async (req, res) => {
       if (taskForceMember.trim()) filter.taskForceMember = new RegExp(taskForceMember, "i");
       if (StatusNoida.trim()) filter.StatusNoida = new RegExp(StatusNoida, "i");
     }
+      if (emailsOnly === "true") {
+        const emailUsers = await loginModel
+          .find(filter)
+          .select("email -_id");
+
+        const emails = emailUsers
+          .map(u => u.email)
+          .filter(Boolean);
+
+        return res.status(200).json({
+          success: true,
+          emails,
+          totalEmails: emails.length
+        });
+      }
     const users = await loginModel.find(filter).select('-password -ipAddressLog -__v -username');
     const enrichedUsers = await Promise.all(
       users.map(async (user) => {
